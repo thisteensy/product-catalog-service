@@ -1,0 +1,17 @@
+{
+  "name": "music-catalog-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "tasks.max": "1",
+    "database.hostname": "mariadb",
+    "database.port": "3306",
+    "database.user": "catalog",
+    "database.password": "catalog",
+    "database.server.id": "1",
+    "topic.prefix": "catalog",
+    "database.include.list": "music_catalog",
+    "schema.history.internal.kafka.bootstrap.servers": "kafka:29092",
+    "schema.history.internal.kafka.topic": "schema-changes.music_catalog",
+    "decimal.handling.mode": "string"
+  }
+}
