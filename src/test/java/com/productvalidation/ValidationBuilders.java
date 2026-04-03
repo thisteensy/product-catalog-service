@@ -15,41 +15,41 @@ import java.util.UUID;
 public class ValidationBuilders {
 
     public static Product validProduct() {
-        return new Product(
-                UUID.randomUUID(),
-                "012345678905",
-                "USRC17607839",
-                "Thriller",
-                List.of(new ProductContributor("Michael Jackson", ContributorRole.MAIN_ARTIST)),
-                LocalDate.of(1982, 11, 30),
-                "Pop",
-                false,
-                "en",
-                List.of(new OwnershipSplit("MJ Estate", 100.0)),
-                "s3://audio/thriller.wav",
-                "s3://artwork/thriller.jpg",
-                List.of("spotify", "apple_music"),
-                ProductStatus.SUBMITTED
-        );
+        return Product.builder()
+                .id(UUID.randomUUID())
+                .upc("012345678905")
+                .isrc("USRC17607839")
+                .title("Thriller")
+                .contributors(List.of(new ProductContributor("Michael Jackson", ContributorRole.MAIN_ARTIST)))
+                .releaseDate(LocalDate.now().plusMonths(1))
+                .genre("pop")
+                .explicit(false)
+                .language("en")
+                .ownershipSplits(List.of(new OwnershipSplit("MJ Estate", 100.0)))
+                .audioFileUri("s3://audio/thriller.wav")
+                .artworkUri("s3://artwork/thriller.jpg")
+                .dspTargets(List.of("spotify", "apple_music"))
+                .status(ProductStatus.SUBMITTED)
+                .build();
     }
 
     public static Product invalidProduct() {
-        return new Product(
-                UUID.randomUUID(),
-                "",
-                "FAKE12345",
-                "",
-                List.of(),
-                null,
-                null,
-                false,
-                null,
-                List.of(),
-                null,
-                null,
-                List.of(),
-                ProductStatus.SUBMITTED
-        );
+        return Product.builder()
+                .id(UUID.randomUUID())
+                .upc("")
+                .isrc("FAKE12345")
+                .title("")
+                .contributors(List.of())
+                .releaseDate(null)
+                .genre(null)
+                .explicit(false)
+                .language(null)
+                .ownershipSplits(List.of())
+                .audioFileUri(null)
+                .artworkUri(null)
+                .dspTargets(List.of())
+                .status(ProductStatus.SUBMITTED)
+                .build();
     }
 
     public static List<RuleResult> passingRuleResults() {

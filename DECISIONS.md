@@ -45,3 +45,9 @@
 **Rationale:** For in-memory rule checks, sequential execution has lower overhead than parallel streams. Thread management and result collection costs outweigh the benefits at this scale.
 **Tradeoffs:** If rules make external I/O calls -- checking ISRC against an external registry, querying a copyright database -- parallel execution would significantly reduce latency. `parallelStream()` makes this a trivial change if needed.
 **Revisit when:** Rule evaluation latency becomes measurable, or rules are introduced that make external calls.
+
+## ADR-009: Rule engine configuration via Spring Factory
+**Decision:** Universal and DSP-specific rules are wired into `RuleEngineImpl` via a `RuleEngineConfig` Spring `@Configuration` class rather than direct injection by type.
+**Rationale:** Follows the Open/Closed Principle -- adding a new DSP rule group requires only a new class and a new entry in the config map. `RuleEngineImpl` never needs to change. The config class acts as a Factory, centralizing the assembly of the rule engine.
+**Tradeoffs:** In a production system, DSP rule sets would likely be more dynamic -- loaded from a database or external configuration rather than hardcoded in a Spring config. The config class approach is appropriate for this submission but would need to evolve for a fully configurable rule registry.
+**Revisit when:** DSP rule sets need to be managed by non-engineers or updated without a deployment.

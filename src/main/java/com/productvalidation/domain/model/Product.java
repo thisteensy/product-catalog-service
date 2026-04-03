@@ -2,6 +2,7 @@ package com.productvalidation.domain.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Builder;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.UUID;
 
 @Getter
 @AllArgsConstructor
+@Builder(toBuilder = true)
 public class Product {
 
     private final UUID id;
