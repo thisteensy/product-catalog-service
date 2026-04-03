@@ -23,9 +23,10 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
-    public void updateStatus(UUID id, ProductStatus status) {
+    public void updateStatus(UUID id, ProductStatus status, String reviewerNotes) {
         jpaRepository.findById(id.toString()).ifPresent(entity -> {
             entity.setStatus(status.name());
+            entity.setReviewerNotes(reviewerNotes);
             jpaRepository.save(entity);
         });
     }

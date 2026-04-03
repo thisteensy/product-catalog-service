@@ -60,7 +60,7 @@ public class ProductEventConsumer {
 
             Product product = mapper.toDomain(event.getPayload().getAfter());
             ValidationResult result = validationService.validate(product);
-            productRepository.updateStatus(product.getId(), result.getStatus());
+            productRepository.updateStatus(product.getId(), result.getStatus(), null);
 
             log.info("Validated product {} -- status: {}", product.getId(), result.getStatus());
 

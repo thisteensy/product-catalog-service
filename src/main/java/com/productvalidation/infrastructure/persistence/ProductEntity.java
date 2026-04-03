@@ -56,4 +56,7 @@ public class ProductEntity {
 
     @Column(name = "status")
     private String status;
+
+    @Column(name = "reviewer_notes", columnDefinition = "TEXT")
+    private String reviewerNotes;
 }

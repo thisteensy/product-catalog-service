@@ -11,7 +11,7 @@ public interface ProductRepository {
     Product save(Product product);
     Optional<Product> findById(UUID id);
 
-    void updateStatus(UUID id, ProductStatus status);
+    void updateStatus(UUID id, ProductStatus status, String reviewerNotes);
 
     List<Product> findByStatus(ProductStatus status);
     void deleteById(UUID id);
