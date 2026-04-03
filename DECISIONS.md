@@ -51,3 +51,9 @@
 **Rationale:** Follows the Open/Closed Principle -- adding a new DSP rule group requires only a new class and a new entry in the config map. `RuleEngineImpl` never needs to change. The config class acts as a Factory, centralizing the assembly of the rule engine.
 **Tradeoffs:** In a production system, DSP rule sets would likely be more dynamic -- loaded from a database or external configuration rather than hardcoded in a Spring config. The config class approach is appropriate for this submission but would need to evolve for a fully configurable rule registry.
 **Revisit when:** DSP rule sets need to be managed by non-engineers or updated without a deployment.
+
+## ADR-010: Dead Letter Queue routing with DefaultErrorHandler
+**Decision:** Failed messages are routed to `product-dlq` via Spring Kafka's `DefaultErrorHandler` and `DeadLetterPublishingRecoverer`. `RuntimeException` is configured as non-retryable -- permanent failures go directly to DLQ without retrying.
+**Rationale:** Two categories of failure need different handling. Transient failures (network blips, temporary DB unavailability) are worth retrying. Permanent failures (malformed events, invalid UUIDs, JSON parse errors) will never succeed and should fail fast to avoid blocking the consumer. Routing to a DLQ ensures no messages are permanently lost and can be inspected and replayed when the underlying issue is fixed.
+**Tradeoffs:** The current configuration treats all `RuntimeException` as non-retryable which is broad. A production system would classify exceptions more precisely -- for example retrying `DataAccessException` but not `JsonProcessingException`. This is a known simplification for this submission.
+**Revisit when:** Specific transient failure modes are identified that warrant retry before DLQ routing.
