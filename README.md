@@ -16,7 +16,7 @@ config:
   layout: dagre
   theme: base
 ---
-flowchart TB
+flowchart LR
  subgraph Clients["Clients"]
         LABEL_UI["🎵 Label UI"]
         RUI["🔍 Reviewer UI"]
