@@ -197,3 +197,59 @@ src/main/java/com/productvalidation/
     ├── persistence/    -- JPA entity, repository, adapter
     └── rules/          -- UniversalRules, SpotifyRules, RuleEngineImpl
 ```
+
+```mermaid
+---
+config:
+  layout: dagre
+  theme: base
+---
+flowchart TB
+ subgraph Clients["Clients"]
+        LABEL_UI["🎵 Label UI"]
+        RUI["🔍 Reviewer UI"]
+  end
+ subgraph Core["QC Service"]
+        QC["🎯 Validation + Product API"]
+        DB[("🗄️ MariaDB")]
+  end
+ subgraph Stream["Event Stream"]
+        DEB["🔍 Debezium CDC"]
+        T1["📨 product-events"]
+        T2["☠️ product-dlq"]
+  end
+ subgraph Downstream["Downstream"]
+        NOTIFY["🔔 Notification Stub"]
+        DSP["🌍 DSP Delivery Stub"]
+  end
+    LABEL_UI -- POST /products --> QC
+    RUI -- "GET /products/pending-review" --> QC
+    RUI -- PATCH /products/:id/status --> QC
+    QC -- writes --> DB
+    DB -- CDC --> DEB
+    DEB == all domain events ==> T1
+    T1 -- SUBMITTED, RESUBMITTED --> QC
+    QC == fatal failure ==> T2
+    T1 -- VALIDATED, VALIDATION_FAILED, PUBLISHED --> NOTIFY
+    T1 -- PUBLISHED, TAKEN_DOWN --> DSP
+
+     LABEL_UI:::external
+     RUI:::external
+     QC:::service
+     DB:::storage
+     DEB:::infra
+     T1:::topic
+     T2:::topic
+     NOTIFY:::stub
+     DSP:::stub
+    classDef external fill:#00F5D4,stroke:#00C4A9,color:#000
+    classDef service fill:#F15BB5,stroke:#C1398A,color:#fff
+    classDef infra fill:#F4769E,stroke:#C44870,color:#fff
+    classDef storage fill:#FEE440,stroke:#C9B400,color:#000
+    classDef topic fill:#CBDC65,stroke:#9AAD3A,color:#000
+    classDef stub fill:#00BBF9,stroke:#0090C9,color:#000
+    style Clients fill:#fff,stroke:#7a3db8,color:#fff
+    style Core fill:#fff,stroke:#7a3db8,color:#fff
+    style Stream fill:#fff,stroke:#7a3db8,color:#fff
+    style Downstream fill:#fff,stroke:#7a3db8,color:#fff
+```
