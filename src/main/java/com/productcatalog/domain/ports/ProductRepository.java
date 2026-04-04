@@ -1,5 +1,6 @@
 package com.productcatalog.domain.ports;
 
+import com.productcatalog.domain.model.ChangedByType;
 import com.productcatalog.domain.model.Product;
 import com.productcatalog.domain.model.ProductStatus;
 
@@ -11,7 +12,7 @@ public interface ProductRepository {
     Product save(Product product);
     Optional<Product> findById(UUID id);
     List<Product> findAll();
-    void updateStatus(UUID id, ProductStatus status, String reviewerNotes);
+    void updateStatus(UUID id, ProductStatus status, String notes, ChangedByType changedByType, String changedById);
     List<Product> findByStatus(ProductStatus status);
     void deleteById(UUID id);
     void update(Product product);

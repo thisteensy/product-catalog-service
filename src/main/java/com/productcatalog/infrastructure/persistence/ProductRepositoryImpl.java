@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.productcatalog.domain.model.*;
 import com.productcatalog.domain.ports.ProductRepository;
+import com.productcatalog.domain.ports.ProductStatusHistoryRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -16,20 +17,31 @@ public class ProductRepositoryImpl implements ProductRepository {
 
     private final ProductJpaRepository jpaRepository;
     private final ObjectMapper objectMapper;
+    private final ProductStatusHistoryRepository historyRepository;
 
-    public ProductRepositoryImpl(ProductJpaRepository jpaRepository, ObjectMapper objectMapper) {
+    public ProductRepositoryImpl(ProductJpaRepository jpaRepository, ObjectMapper objectMapper, ProductStatusHistoryRepository historyRepository) {
         this.jpaRepository = jpaRepository;
         this.objectMapper = objectMapper;
+        this.historyRepository = historyRepository;
     }
 
     @Override
-    public void updateStatus(UUID id, ProductStatus status, String reviewerNotes) {
+    public void updateStatus(UUID id, ProductStatus status, String notes, ChangedByType changedByType, String changedById) {
         jpaRepository.findById(id.toString()).ifPresent(entity -> {
             Product product = toDomain(entity);
+            ProductStatus previousStatus = product.getStatus();
             product.transitionTo(status);
             entity.setStatus(product.getStatus().name());
-            entity.setReviewerNotes(reviewerNotes);
+            entity.setReviewerNotes(notes);
             jpaRepository.save(entity);
+            historyRepository.record(
+                    id,
+                    previousStatus,
+                    status,
+                    changedByType,
+                    changedById,
+                    notes
+            );
         });
     }
 
@@ -115,9 +127,18 @@ public class ProductRepositoryImpl implements ProductRepository {
     public void resubmit(UUID id) {
         jpaRepository.findById(id.toString()).ifPresent(entity -> {
             Product product = toDomain(entity);
+            ProductStatus previousStatus = product.getStatus();
             product.transitionTo(ProductStatus.RESUBMITTED);
             entity.setStatus(product.getStatus().name());
             jpaRepository.save(entity);
+            historyRepository.record(
+                    id,
+                    previousStatus,
+                    ProductStatus.RESUBMITTED,
+                    ChangedByType.LABEL,
+                    null,
+                    null
+            );
         });
     }
 

@@ -89,6 +89,8 @@ flowchart TB
 
 **No Redis.** Read load on the catalog API does not justify a cache at reasonable submission volumes. A well-indexed MariaDB is sufficient. Redis would be reconsidered if label-facing status polling created measurable DB read pressure.
 
+**Status transition history.** Every status transition is recorded in `product_status_history` with the previous status, new status, actor type (`SYSTEM`, `REVIEWER`, `LABEL`), optional actor identity, and timestamp. This gives ops teams full visibility into a product's lifecycle and is critical for the resubmission workflow -- reviewers need to see why a product failed and what changed between submissions.
+
 Full decision records are documented in [DECISIONS.md](DECISIONS.md).
 
 ---
@@ -238,7 +240,6 @@ In production this service would be instrumented with distributed tracing (OpenT
 ## What I would do with more time
 
 - **Integration tests** using Testcontainers for the persistence layer and Kafka consumer
-- **Status history tracking** -- a `product_status_history` table recording each status transition with timestamp and reason. Critical for the resubmission workflow -- ops teams need visibility into why a product failed and what changed between submissions. Debezium would pick this up automatically, so history tracking and event auditability come for free given the existing architecture.
 - **DLQ consumer** with Slack alerting for operational visibility
 - **More DSP rule sets** -- Apple Music, Amazon Music, YouTube
 - **Rule configuration from database** -- allow non-engineers to add and modify rules without a deployment

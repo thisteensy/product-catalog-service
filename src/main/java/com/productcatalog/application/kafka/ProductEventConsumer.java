@@ -1,6 +1,7 @@
 package com.productcatalog.application.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.productcatalog.domain.model.ChangedByType;
 import com.productcatalog.domain.model.Product;
 import com.productcatalog.domain.model.ProductStatus;
 import com.productcatalog.infrastructure.rules.RuleEngine;
@@ -60,7 +61,7 @@ public class ProductEventConsumer {
 
             Product product = mapper.toDomain(event.getPayload().getAfter());
             ValidationResult result = new ValidationResult(product, ruleEngine.evaluate(product));
-            productRepository.updateStatus(product.getId(), result.getStatus(), null);
+            productRepository.updateStatus(product.getId(), result.getStatus(),null, ChangedByType.SYSTEM, null);
 
             log.info("Validated product {} -- status: {}", product.getId(), result.getStatus());
 

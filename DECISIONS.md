@@ -94,3 +94,11 @@
 **Rationale:** QC validation is a consumer concern, not a catalog concern. The catalog domain knows only that a product has a status -- it has no knowledge of how that status was determined. Placing validation logic in the infrastructure layer reflects this boundary accurately. The domain remains pure: `Product`, `ProductStatus`, contributors, ownership splits.
 **Tradeoffs:** The rule engine is an infrastructure concern that happens to write back to the catalog via the repository. This creates a dependency from infrastructure to domain, which is the correct direction in hexagonal architecture.
 **Revisit when:** The validation consumer is extracted into its own service, at which point the rule engine and its supporting types would move with it entirely.
+
+## ADR-015: Status transition history tracking
+**Decision:** Every call to `Product.transitionTo()` results in a row written to `product_status_history` via `ProductStatusHistoryRepository`. Each row captures the product ID, previous status, new status, actor type (`SYSTEM`, `REVIEWER`, `LABEL`), optional actor identity, and timestamp.
+**Rationale:** Status history is critical for the resubmission workflow -- ops teams need to see why a product failed validation and what changed between submissions. Without history, the only visible state is the current status. History also provides a natural audit trail for compliance and debugging.
+**Actor identity:** The `changed_by_type` distinguishes between system-driven transitions (validation consumer) and human-driven transitions (label resubmission, reviewer decisions). The `changed_by_id` field is nullable -- currently null for all transitions since authentication is not implemented. When an identity provider is introduced, this field will carry the authenticated user or label account ID.
+**Tradeoffs:** Every status update now requires two writes -- the status update and the history row. These are not wrapped in an explicit transaction in this submission, which means a failure between the two writes could leave the history incomplete. In production, both writes should be wrapped in a single transaction.
+**Revisit when:** Authentication is introduced, at which point `changed_by_id` should be populated from the security context. Also revisit to wrap both writes in a transaction.
+
