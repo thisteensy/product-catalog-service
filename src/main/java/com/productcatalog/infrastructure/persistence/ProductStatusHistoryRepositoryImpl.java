@@ -38,4 +38,9 @@ public class ProductStatusHistoryRepositoryImpl implements ProductStatusHistoryR
         );
         jpaRepository.save(entity);
     }
+
+    @Override
+    public void deleteByProductId(UUID productId) {
+        jpaRepository.deleteByProductId(productId.toString());
+    }
 }

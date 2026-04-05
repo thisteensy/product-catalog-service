@@ -11,6 +11,7 @@ import com.productcatalog.infrastructure.persistence.entities.TrackEntity;
 import com.productcatalog.infrastructure.persistence.ports.ProductJpaRepository;
 import com.productcatalog.infrastructure.persistence.ports.TrackJpaRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -53,7 +54,10 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    @Transactional
     public void deleteById(UUID id) {
+        historyRepository.deleteByProductId(id);
+        trackJpaRepository.deleteByProductId(id.toString());
         jpaRepository.deleteById(id.toString());
     }
 

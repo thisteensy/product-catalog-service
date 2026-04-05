@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface TrackJpaRepository extends JpaRepository<TrackEntity, String> {
     List<TrackEntity> findByProductId(String productId);
+
+    void deleteByProductId(String string);
 }

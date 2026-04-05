@@ -1,0 +1,28 @@
+{
+  "upc": "012345675001",
+  "title": "Rumours",
+  "releaseDate": "2027-06-01",
+  "genre": "rock",
+  "language": "en",
+  "artworkUri": "s3://artwork/rumours.jpg",
+  "ownershipSplits": [
+    { "rightsHolder": "Fleetwood Mac", "percentage": 100.0 }
+  ],
+  "dspTargets": ["spotify"],
+  "tracks": [
+    {
+      "isrc": "USRC17600001",
+      "title": "Go Your Own Way",
+      "trackNumber": 1,
+      "audioFileUri": "s3://audio/goyourownway.wav",
+      "duration": 224,
+      "explicit": false,
+      "contributors": [
+        { "name": "Lindsey Buckingham", "role": "MAIN_ARTIST" }
+      ],
+      "ownershipSplits": [
+        { "rightsHolder": "Fleetwood Mac", "percentage": 100.0 }
+      ]
+    }
+  ]
+}

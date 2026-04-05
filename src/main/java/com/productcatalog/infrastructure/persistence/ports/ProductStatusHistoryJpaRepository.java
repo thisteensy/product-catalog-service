@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductStatusHistoryJpaRepository extends JpaRepository<ProductStatusHistoryEntity, String> {
+    void deleteByProductId(String string);
 }

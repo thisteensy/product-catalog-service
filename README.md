@@ -133,6 +133,41 @@ Tests use Testcontainers and require Docker. To generate a coverage report:
 open target/site/jacoco/index.html
 ```
 
+## API documentation
+
+The API is documented with Swagger UI. Once the stack is running, open:
+```
+http://localhost:8080/swagger-ui
+```
+
+The full OpenAPI spec is available at:
+```
+http://localhost:8080/api-docs
+```
+# Sample submissions
+
+These payloads demonstrate the different validation outcomes.
+
+**Option 1 -- curl:**
+```bash
+curl -X POST http://localhost:8080/products \
+  -H "Content-Type: application/json" \
+  -d @samples/<filename>.json
+```
+
+**Option 2 -- Swagger UI:**
+
+Open `http://localhost:8080/swagger-ui`, expand the `POST /products` endpoint, click "Try it out", and paste the contents of any sample file into the request body.
+
+| File | Expected outcome |
+|------|-----------------|
+| `valid-submission.json` | Product and track reach `VALIDATED` |
+| `needs-review-past-release-date.json` | Product reaches `NEEDS_REVIEW` due to past release date |
+| `validation-failed-invalid-audio-format.json` | Track reaches `VALIDATION_FAILED` due to unsupported audio format |
+| `validation-failed-missing-main-artist.json` | Track reaches `VALIDATION_FAILED` due to missing MAIN_ARTIST contributor |
+
+After submitting, use `GET /products/{id}` with the returned ID to check the validation status. Allow a few seconds for the pipeline to process.
+
 ## What I'd do differently with more time
 
 **Extract the validation pipeline into its own service.** The product API and the validation pipeline have different operational requirements and should be separate services. The API is stateless and scales horizontally without ceremony. The validation pipeline (consumers, rule engine, and Kafka Streams application) is stateful, event-driven, and needs different scaling characteristics, particularly around the RocksDB state store. Keeping them together made sense for the submission but in production they would be separate deployments.

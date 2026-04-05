@@ -1,0 +1,28 @@
+{
+  "upc": "012345675003",
+  "title": "Nevermind",
+  "releaseDate": "2027-06-01",
+  "genre": "rock",
+  "language": "en",
+  "artworkUri": "s3://artwork/nevermind.jpg",
+  "ownershipSplits": [
+    { "rightsHolder": "Nirvana", "percentage": 100.0 }
+  ],
+  "dspTargets": ["spotify"],
+  "tracks": [
+    {
+      "isrc": "USRC17600003",
+      "title": "Smells Like Teen Spirit",
+      "trackNumber": 1,
+      "audioFileUri": "s3://audio/teenspirit.ogg",
+      "duration": 301,
+      "explicit": false,
+      "contributors": [
+        { "name": "Kurt Cobain", "role": "MAIN_ARTIST" }
+      ],
+      "ownershipSplits": [
+        { "rightsHolder": "Nirvana", "percentage": 100.0 }
+      ]
+    }
+  ]
+}

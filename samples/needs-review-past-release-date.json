@@ -1,0 +1,28 @@
+{
+  "upc": "012345675002",
+  "title": "Born to Run",
+  "releaseDate": "2024-01-01",
+  "genre": "rock",
+  "language": "en",
+  "artworkUri": "s3://artwork/borntorun.jpg",
+  "ownershipSplits": [
+    { "rightsHolder": "Bruce Springsteen", "percentage": 100.0 }
+  ],
+  "dspTargets": ["spotify"],
+  "tracks": [
+    {
+      "isrc": "USRC17600002",
+      "title": "Thunder Road",
+      "trackNumber": 1,
+      "audioFileUri": "s3://audio/thunderroad.wav",
+      "duration": 298,
+      "explicit": false,
+      "contributors": [
+        { "name": "Bruce Springsteen", "role": "MAIN_ARTIST" }
+      ],
+      "ownershipSplits": [
+        { "rightsHolder": "Bruce Springsteen", "percentage": 100.0 }
+      ]
+    }
+  ]
+}

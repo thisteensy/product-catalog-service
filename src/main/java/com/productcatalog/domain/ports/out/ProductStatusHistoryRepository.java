@@ -12,4 +12,6 @@ public interface ProductStatusHistoryRepository {
                 ChangedByType changedByType,
                 String changedById,
                 String notes);
+
+    void deleteByProductId(UUID id);
 }
