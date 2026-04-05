@@ -28,7 +28,7 @@ public class ProductValidationStateSerde implements Serde<ProductValidationState
     public Deserializer<ProductValidationState> deserializer() {
         return (topic, data) -> {
             try {
-                if (data == null) return null;
+                if (data == null) { return null; };
                 return objectMapper.readValue(data, ProductValidationState.class);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to deserialize ProductValidationState", e);

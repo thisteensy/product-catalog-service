@@ -52,9 +52,13 @@ public class ProductValidationTopology {
                 .flatMapValues(message -> {
                     try {
                         ProductEventDto event = productEventMapper.toDto(message);
-                        if (event.getPayload() == null || event.getPayload().getAfter() == null) return List.of();
+                        if (event.getPayload() == null || event.getPayload().getAfter() == null) {
+                            return List.of();
+                        }
                         String op = event.getPayload().getOp();
-                        if (!"c".equals(op) && !"u".equals(op)) return List.of();
+                        if (!"c".equals(op) && !"u".equals(op)) {
+                            return List.of();
+                        }
                         ProductEventDto.ProductRow row = event.getPayload().getAfter();
                         return List.of(new ValidationEvent(
                                 ValidationEvent.Type.PRODUCT,
@@ -75,9 +79,13 @@ public class ProductValidationTopology {
                 .flatMapValues(message -> {
                     try {
                         TrackEventDto event = trackEventMapper.toDto(message);
-                        if (event.getPayload() == null || event.getPayload().getAfter() == null) return List.of();
+                        if (event.getPayload() == null || event.getPayload().getAfter() == null) {
+                            return List.of();
+                        }
                         String op = event.getPayload().getOp();
-                        if (!"c".equals(op) && !"u".equals(op)) return List.of();
+                        if (!"c".equals(op) && !"u".equals(op)) {
+                            return List.of();
+                        }
                         TrackEventDto.TrackRow row = event.getPayload().getAfter();
                         return List.of(new ValidationEvent(
                                 ValidationEvent.Type.TRACK,
@@ -112,9 +120,15 @@ public class ProductValidationTopology {
                 );
         // Detect completion and trigger rollup
         stateTable.toStream().foreach((productId, state) -> {
-            if (state == null) return;
-            if (!state.isAwaitingTrackValidation()) return;
-            if (!state.allTracksValidated()) return;
+            if (state == null) {
+                return;
+            }
+            if (!state.isAwaitingTrackValidation()) {
+                return;
+            }
+            if (!state.allTracksValidated()) {
+                return;
+            }
 
             log.info("All tracks validated for product {} -- triggering rollup", productId);
             orchestrationService.onAllTracksValidated(UUID.fromString(productId));

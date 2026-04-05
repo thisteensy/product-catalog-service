@@ -19,7 +19,9 @@ public class DspOrchestrator {
 
     public List<RuleResult> evaluateProduct(Product product) {
         List<RuleResult> results = new ArrayList<>();
-        if (product.getDspTargets() == null) return results;
+        if (product.getDspTargets() == null) {
+            return results;
+        }
 
         dspRuleSets.stream()
                 .filter(rs -> product.getDspTargets().contains(rs.dspName()))
@@ -30,7 +32,9 @@ public class DspOrchestrator {
 
     public List<RuleResult> evaluateTrack(Track track, List<String> dspTargets) {
         List<RuleResult> results = new ArrayList<>();
-        if (dspTargets == null) return results;
+        if (dspTargets == null) {
+            return results;
+        }
 
         dspRuleSets.stream()
                 .filter(rs -> dspTargets.contains(rs.dspName()))

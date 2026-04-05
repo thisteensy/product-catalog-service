@@ -95,6 +95,10 @@ flowchart LR
 
 ## Key decisions
 
+**Parse, don't validate**
+
+The mappers (`ProductEventMapper`, `TrackEventMapper`, `ProductMapper`) don't just copy fields -- they normalize and sanitize as they parse. Stripping whitespace, lowercasing language codes, uppercasing ISRCs, converting tinyint to boolean. By the time a `Product` or `Track` reaches the domain it's already in a valid, normalized form. This is informed by Alexis King's "Parse, Don't Validate" principle -- the idea that parsing and validation should happen at the boundary so the domain only ever sees well-formed data. Java's type system can't enforce this at compile time the way Haskell or Rust can, but the mappers act as that boundary by convention.
+
 **Debezium for change capture**
 
 Rather than publishing events explicitly from the application, I used Debezium to capture changes from MariaDB's binary log. This means the database is the source of truth and events flow from it naturally -- there's no risk of a write succeeding while the event publish fails. I've worked with this pattern before and it's one I trust.
@@ -267,3 +271,5 @@ A DLQ monitor would also be a first priority -- alerting via a Slack webhook whe
 **Authentication and authorization** Currently any caller can submit, update, or delete any product. In production, the API would sit behind an identity provider like Okta. Labels would authenticate via OAuth2 and their token would scope them to their own catalog -- a label can only read and modify their own products. The `changed_by_id` field on status history is already nullable and waiting for this -- once authentication is in place, the authenticated label account ID would populate that field on every resubmission, giving a full audit trail of who changed what and when.
 
 **Expand DSP rule coverage.** The Spotify rules are a proof of concept. A real implementation would have rules per DSP with proper configuration, and the rule sets would likely be data-driven rather than hardcoded.
+
+**Security scanning and pre-commit hooks** In production I'd add Snyk or Dependabot to scan dependencies for known vulnerabilities, integrated into the GitHub Actions pipeline so a failing scan blocks the deployment. Pre-commit hooks via Husky or a simple shell script would catch obvious issues before they hit CI -- at minimum a checkstyle run and a quick `./mvnw test` on changed modules. The goal is to catch things as early as possible rather than waiting for the deployment pipeline to fail.

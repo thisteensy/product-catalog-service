@@ -39,7 +39,9 @@ public class Product {
         }
         this.status = newStatus;
 
-        if (tracks == null) return;
+        if (tracks == null) {
+            return;
+        }
 
         switch (newStatus) {
             case TAKEN_DOWN -> tracks.forEach(t -> t.transitionTo(TrackStatus.TAKEN_DOWN));

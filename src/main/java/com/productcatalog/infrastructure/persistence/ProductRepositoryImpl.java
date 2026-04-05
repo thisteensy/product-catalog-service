@@ -133,7 +133,9 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     private void saveTracks(List<Track> tracks, ProductEntity productEntity) {
-        if (tracks == null) return;
+        if (tracks == null) {
+            return;
+        }
         try {
             for (Track track : tracks) {
                 TrackEntity trackEntity = new TrackEntity(

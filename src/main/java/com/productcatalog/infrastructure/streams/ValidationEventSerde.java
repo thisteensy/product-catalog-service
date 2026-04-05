@@ -28,7 +28,7 @@ public class ValidationEventSerde implements Serde<ValidationEvent> {
     public Deserializer<ValidationEvent> deserializer() {
         return (topic, data) -> {
             try {
-                if (data == null) return null;
+                if (data == null) { return null; };
                 return objectMapper.readValue(data, ValidationEvent.class);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to deserialize ValidationEvent", e);
