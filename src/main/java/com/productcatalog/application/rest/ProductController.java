@@ -8,11 +8,16 @@ import com.productcatalog.domain.ports.out.ProductRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = "Products", description = "Music product submission and management")
 @RestController
 @RequestMapping("/products")
 public class ProductController {
@@ -25,6 +30,11 @@ public class ProductController {
         this.productMapper = productMapper;
     }
 
+    @Operation(summary = "Submit a new product for validation")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Product created and submitted for validation"),
+            @ApiResponse(responseCode = "400", description = "Invalid product data")
+    })
     @PostMapping
     public ResponseEntity<Product> create(@Valid @RequestBody ProductParams productParams) {
         Product product = productMapper.toProductFromProductParams(productParams);
@@ -36,6 +46,11 @@ public class ProductController {
         return ResponseEntity.created(URI.create("/products/" + saved.getId())).body(saved);
     }
 
+    @Operation(summary = "Get a product by ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Product found"),
+            @ApiResponse(responseCode = "404", description = "Product not found")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<Product> getById(@PathVariable UUID id) {
         return productRepository.findById(id)
@@ -43,11 +58,18 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Get all products")
+    @ApiResponse(responseCode = "200", description = "List of all products")
     @GetMapping
     public ResponseEntity<List<Product>> getAll() {
         return ResponseEntity.ok(productRepository.findAll());
     }
 
+    @Operation(summary = "Delete a product")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Product deleted"),
+            @ApiResponse(responseCode = "404", description = "Product not found")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         if (productRepository.findById(id).isEmpty()) {
@@ -57,6 +79,12 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Update a product")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Product updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid product data"),
+            @ApiResponse(responseCode = "404", description = "Product not found")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<Void> update(
             @PathVariable UUID id,
@@ -70,6 +98,11 @@ public class ProductController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Resubmit a product for validation after corrections")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Product resubmitted"),
+            @ApiResponse(responseCode = "404", description = "Product not found")
+    })
     @PostMapping("/{id}/resubmit")
     public ResponseEntity<Void> resubmit(@PathVariable UUID id) {
         return productRepository.findById(id)
