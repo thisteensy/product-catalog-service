@@ -1,7 +1,10 @@
 #!/bin/bash
 
+echo "Building application..."
+./mvnw package -DskipTests
+
 echo "Starting infrastructure..."
-docker compose up -d
+docker compose up -d --build
 
 echo "Waiting for Kafka Connect to be healthy..."
 until curl -s http://localhost:8083/connectors > /dev/null 2>&1; do

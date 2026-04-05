@@ -36,6 +36,11 @@ services:
       - --expire-logs-days=1
     volumes:
       - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kafka-connect:
     build:
@@ -60,6 +65,25 @@ services:
     depends_on:
       - kafka
       - mariadb
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: product-catalog-service
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/music_catalog
+      - SPRING_DATASOURCE_USERNAME=catalog
+      - SPRING_DATASOURCE_PASSWORD=catalog
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      kafka-connect:
+        condition: service_started
 
 volumes:
   mariadb_data:
