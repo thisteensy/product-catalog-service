@@ -113,7 +113,7 @@ The domain only knows about `ValidationOutcome`, it never sees `RuleResult` or `
 
 **Kafka Streams KTable for submission state**
 
-The tricky part of this problem is knowing when all tracks for a product have finished validating. My first instinct was to query MariaDB on every track event, but that gets chatty at scale. Instead I built a Kafka Streams topology that merges the product and track event streams into a KTable keyed by product ID. The KTable holds the current validation state of each in-flight submission, and when it detects all tracks are validated it triggers the rollup.
+The tricky part of this problem is knowing when all tracks for a product have finished validating. My first instinct was to query MariaDB on every track event, but that gets chatty at scale. Instead I built a Kafka Streams topology that merges the product and track event streams into a KTable keyed by product ID. The KTable holds the current validation state of each in-flight submission, and when it detects all tracks are validated it triggers the rollup. It's using a "collect-persist-evict" pattern.
 
 The Kafka Streams app lives in the same service as everything else. I wouldn't do that in production, it should be a separate stateful deployment with persistent RocksDB volumes, but for this submission it keeps things self-contained and I've called it out clearly.
 

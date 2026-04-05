@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,17 +31,20 @@ public class ProductValidationTopology {
     private final ProductValidationStateSerde stateSerde;
     private final ValidationEventSerde eventSerde;
     private final ValidationOrchestrationService orchestrationService;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     public ProductValidationTopology(ProductEventMapper productEventMapper,
                                      TrackEventMapper trackEventMapper,
                                      ProductValidationStateSerde stateSerde,
                                      ValidationEventSerde eventSerde,
-                                     ValidationOrchestrationService orchestrationService) {
+                                     ValidationOrchestrationService orchestrationService,
+                                     KafkaTemplate<String, String> kafkaTemplate) {
         this.productEventMapper = productEventMapper;
         this.trackEventMapper = trackEventMapper;
         this.stateSerde = stateSerde;
         this.eventSerde = eventSerde;
         this.orchestrationService = orchestrationService;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Bean
@@ -132,6 +136,9 @@ public class ProductValidationTopology {
 
             log.info("All tracks validated for product {} -- triggering rollup", productId);
             orchestrationService.onAllTracksValidated(UUID.fromString(productId));
+
+            log.info("Evicting product {} from validation state store", productId);
+            kafkaTemplate.send("product-validation-streams-product-validation-state-repartition", productId, null);
         });
 
         return stateTable;

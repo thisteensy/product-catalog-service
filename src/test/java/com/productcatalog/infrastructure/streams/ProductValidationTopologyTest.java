@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.Properties;
 import java.util.UUID;
@@ -27,6 +28,9 @@ class ProductValidationTopologyTest {
 
     @Mock
     private ValidationOrchestrationService orchestrationService;
+
+    @Mock
+    private KafkaTemplate<String, String> kafkaTemplate;
 
     private TopologyTestDriver testDriver;
     private TestInputTopic<String, String> productTopic;
@@ -44,7 +48,7 @@ class ProductValidationTopologyTest {
         ValidationEventSerde eventSerde = new ValidationEventSerde(objectMapper);
 
         ProductValidationTopology topology = new ProductValidationTopology(
-                productEventMapper, trackEventMapper, stateSerde, eventSerde, orchestrationService);
+                productEventMapper, trackEventMapper, stateSerde, eventSerde, orchestrationService, kafkaTemplate);
 
         StreamsBuilder builder = new StreamsBuilder();
         topology.productValidationStateTable(builder);

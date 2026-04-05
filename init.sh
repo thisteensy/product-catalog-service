@@ -26,4 +26,10 @@ curl -X POST http://localhost:8083/connectors \
   -H "Content-Type: application/json" \
   -d @debezium-connector.json
 
-echo "Done. Infrastructure is ready."
+echo "Waiting for connector to be running..."
+until curl -s http://localhost:8083/connectors/music-catalog-connector/status | grep -q '"state":"RUNNING"'; do
+  echo "Connector not running yet, waiting..."
+  sleep 3
+done
+
+echo "Connector is running. Infrastructure is ready."
