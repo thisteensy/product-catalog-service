@@ -239,9 +239,7 @@ A DLQ monitor would also be a first priority, alerting via a Slack webhook whene
 
 ## What I'd do differently with more time
 
-**Catalog search and filtering**
-
-The current `GET /products` returns all products which is fine for a demo but not realistic for production. A label-facing API would need filtering by UPC, title, ISRC, status, and label. The label filter in particular is tied to authentication -- once labels authenticate via OAuth2, `GET /products` should implicitly scope results to the authenticated label's catalog without requiring them to pass a label ID explicitly.
+**Catalog search and filtering** The current `GET /products` returns all products which is fine for a demo but not realistic for production. A label-facing API would need filtering by UPC, title, ISRC, status, and label. The label filter in particular is tied to authentication -- once labels authenticate via OAuth2, `GET /products` should implicitly scope results to the authenticated label's catalog without requiring them to pass a label ID explicitly.
 
 **Extract the validation pipeline into its own service.** The product API and the validation pipeline have different operational requirements and should be separate services. The API is stateless and scales horizontally without ceremony. The validation pipeline (consumers, rule engine, and Kafka Streams application) is stateful, event-driven, and needs different scaling characteristics, particularly around the RocksDB state store. Keeping them together made sense for the submission but in production they would be separate deployments.
 
@@ -259,3 +257,5 @@ The same API could back a real-time state visualization, a live view of in-fligh
 **Expand DSP rule coverage.** The Spotify rules are a proof of concept. A real implementation would have rules per DSP with proper configuration, and the rule sets would likely be data-driven rather than hardcoded.
 
 **Security scanning and pre-commit hooks** In production I'd add Snyk or Dependabot to scan dependencies for known vulnerabilities, integrated into the GitHub Actions pipeline so a failing scan blocks the deployment. Pre-commit hooks via Husky or a simple shell script would catch obvious issues before they hit CI, at minimum a checkstyle run and a quick `./mvnw test` on changed modules. The goal is to catch things as early as possible rather than waiting for the deployment pipeline to fail.
+
+**Reliability and Fault Tolerance and Performance** A production system would never have only one deployment. There would be more than one environment, usually three. Everything in each environment would be replicated. There would be multiple nodes of the applications, multiple replicas of the topics. There would be a replica or some way to recover the database. There would be a load balancer in front of the servers.
