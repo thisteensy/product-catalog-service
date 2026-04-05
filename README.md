@@ -117,10 +117,6 @@ The tricky part of this problem is knowing when all tracks for a product have fi
 
 The Kafka Streams app lives in the same service as everything else. I wouldn't do that in production -- it should be a separate stateful deployment with persistent RocksDB volumes -- but for this submission it keeps things self-contained and I've called it out clearly.
 
-**Explicit resubmission**
-
-Resubmission is a two-step process -- the label updates their product via `PUT /products/{id}`, then explicitly triggers validation via `POST /products/{id}/resubmit`. I made this explicit rather than implicit because implicit resubmission creates a subtle problem: a label might save partial corrections multiple times before they're satisfied, and firing validation on incomplete data wastes pipeline capacity and creates noise in the reviewer queue. An explicit resubmit gives the label control over when they're ready.
-
 **Product-level validation doesn't check for tracks**
 
 The product validation consumer receives a Debezium CDC event containing only the columns of the `products` table. Tracks live in a separate table and aren't included. When the mapper reconstructs a `Product` from the CDC event, the track list is always null -- so any rule checking track existence would always fail regardless of whether tracks were actually submitted. Track existence is already enforced at the API boundary, so the rule is redundant and was removed.

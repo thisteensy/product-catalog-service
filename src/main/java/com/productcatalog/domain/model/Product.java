@@ -62,12 +62,14 @@ public class Product {
             case AWAITING_TRACK_VALIDATION -> Set.of(
                     ProductStatus.VALIDATED,
                     ProductStatus.VALIDATION_FAILED,
-                    ProductStatus.NEEDS_REVIEW
+                    ProductStatus.NEEDS_REVIEW,
+                    ProductStatus.RESUBMITTED
             );
             case VALIDATION_FAILED -> Set.of(ProductStatus.RESUBMITTED);
             case NEEDS_REVIEW -> Set.of(
                     ProductStatus.VALIDATED,
-                    ProductStatus.VALIDATION_FAILED
+                    ProductStatus.VALIDATION_FAILED,
+                    ProductStatus.RESUBMITTED
             );
             case VALIDATED -> Set.of(ProductStatus.PUBLISHED);
             case PUBLISHED -> Set.of(ProductStatus.TAKEN_DOWN);

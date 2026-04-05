@@ -16,5 +16,4 @@ public interface ProductRepository {
     List<Product> findByStatus(ProductStatus status);
     void deleteById(UUID id);
     void update(Product product);
-    void resubmit(UUID id);
 }

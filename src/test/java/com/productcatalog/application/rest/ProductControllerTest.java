@@ -162,47 +162,6 @@ class ProductControllerTest {
     }
 
     @Test
-    void shouldResubmitProductWhenStatusIsValidationFailed() throws Exception {
-        Product product = ValidationBuilders.validProduct().toBuilder()
-                .status(ProductStatus.VALIDATION_FAILED)
-                .build();
-        when(productRepository.findById(product.getId()))
-                .thenReturn(Optional.of(product));
-
-        mockMvc.perform(post("/products/{id}/resubmit", product.getId()))
-                .andExpect(status().isOk());
-
-        verify(productRepository).resubmit(product.getId());
-    }
-
-    @Test
-    void shouldRejectResubmitWhenStatusIsNotValidationFailed() throws Exception {
-        Product product = ValidationBuilders.validProduct().toBuilder()
-                .status(ProductStatus.SUBMITTED)
-                .build();
-        when(productRepository.findById(product.getId()))
-                .thenReturn(Optional.of(product));
-        doThrow(new IllegalStateException("Invalid status transition"))
-                .when(productRepository).resubmit(product.getId());
-
-        mockMvc.perform(post("/products/{id}/resubmit", product.getId()))
-                .andExpect(status().isBadRequest());
-
-        verify(productRepository).resubmit(product.getId());
-    }
-
-    @Test
-    void shouldReturn404WhenResubmittingNonexistentProduct() throws Exception {
-        UUID id = UUID.randomUUID();
-        when(productRepository.findById(id)).thenReturn(Optional.empty());
-
-        mockMvc.perform(post("/products/{id}/resubmit", id))
-                .andExpect(status().isNotFound());
-
-        verify(productRepository, never()).resubmit(any());
-    }
-
-    @Test
     void shouldRejectCreateWhenTitleIsBlank() throws Exception {
         ProductParams params = ValidationBuilders.validProductParams();
         params.setTitle("");

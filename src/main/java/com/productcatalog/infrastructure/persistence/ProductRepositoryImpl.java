@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -108,6 +109,7 @@ public class ProductRepositoryImpl implements ProductRepository {
             entity.setGenre(product.getGenre());
             entity.setLanguage(product.getLanguage());
             entity.setArtworkUri(product.getArtworkUri());
+            entity.setStatus(ProductStatus.RESUBMITTED.name());
             try {
                 entity.setOwnershipSplits(objectMapper.writeValueAsString(product.getOwnershipSplits()));
                 entity.setDspTargets(objectMapper.writeValueAsString(product.getDspTargets()));
@@ -115,20 +117,50 @@ public class ProductRepositoryImpl implements ProductRepository {
                 throw new RuntimeException("Failed to serialize product: " + product.getId(), e);
             }
             jpaRepository.save(entity);
-            trackJpaRepository.deleteAll(trackJpaRepository.findByProductId(product.getId().toString()));
-            saveTracks(product.getTracks(), entity);
-        });
-    }
 
-    @Override
-    public void resubmit(UUID id) {
-        jpaRepository.findById(id.toString()).ifPresent(entity -> {
-            Product product = toDomain(entity);
-            ProductStatus previousStatus = product.getStatus();
-            product.transitionTo(ProductStatus.RESUBMITTED, product.getTracks());
-            entity.setStatus(product.getStatus().name());
-            jpaRepository.save(entity);
-            historyRepository.record(id, previousStatus, ProductStatus.RESUBMITTED, ChangedByType.LABEL, null, null);
+            if (product.getTracks() != null) {
+                List<TrackEntity> existingTracks = trackJpaRepository.findByProductId(product.getId().toString());
+                Map<String, TrackEntity> existingByIsrc = existingTracks.stream()
+                        .collect(java.util.stream.Collectors.toMap(TrackEntity::getIsrc, t -> t));
+
+                for (Track track : product.getTracks()) {
+                    TrackEntity existing = existingByIsrc.get(track.getIsrc());
+                    if (existing != null) {
+                        existing.setTitle(track.getTitle());
+                        existing.setTrackNumber(track.getTrackNumber());
+                        existing.setAudioFileUri(track.getAudioFileUri());
+                        existing.setDuration(track.getDuration());
+                        existing.setExplicit(track.isExplicit());
+                        try {
+                            existing.setContributors(objectMapper.writeValueAsString(track.getContributors()));
+                            existing.setOwnershipSplits(objectMapper.writeValueAsString(track.getOwnershipSplits()));
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException("Failed to serialize track", e);
+                        }
+                        existing.setStatus(TrackStatus.PENDING.name());
+                        trackJpaRepository.save(existing);
+                    } else {
+                        try {
+                            TrackEntity newTrack = new TrackEntity(
+                                    UUID.randomUUID().toString(),
+                                    entity,
+                                    track.getIsrc(),
+                                    track.getTitle(),
+                                    track.getTrackNumber(),
+                                    track.getAudioFileUri(),
+                                    track.getDuration(),
+                                    track.isExplicit(),
+                                    objectMapper.writeValueAsString(track.getContributors()),
+                                    objectMapper.writeValueAsString(track.getOwnershipSplits()),
+                                    TrackStatus.PENDING.name()
+                            );
+                            trackJpaRepository.save(newTrack);
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException("Failed to serialize track", e);
+                        }
+                    }
+                }
+            }
         });
     }
 

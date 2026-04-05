@@ -97,19 +97,4 @@ public class ProductController {
         productRepository.update(product.toBuilder().id(id).build());
         return ResponseEntity.ok().build();
     }
-
-    @Operation(summary = "Resubmit a product for validation after corrections")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Product resubmitted"),
-            @ApiResponse(responseCode = "404", description = "Product not found")
-    })
-    @PostMapping("/{id}/resubmit")
-    public ResponseEntity<Void> resubmit(@PathVariable UUID id) {
-        return productRepository.findById(id)
-                .map(product -> {
-                    productRepository.resubmit(id);
-                    return ResponseEntity.ok().<Void>build();
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
 }
