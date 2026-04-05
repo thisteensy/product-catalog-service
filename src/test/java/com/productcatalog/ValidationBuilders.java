@@ -1,5 +1,7 @@
 package com.productcatalog;
 
+import com.productcatalog.application.kafka.dtos.ProductEventDto;
+import com.productcatalog.application.kafka.dtos.TrackEventDto;
 import com.productcatalog.application.rest.params.ProductParams;
 import com.productcatalog.domain.model.*;
 import com.productcatalog.infrastructure.rules.RuleResult;
@@ -112,5 +114,36 @@ public class ValidationBuilders {
         params.setDspTargets(List.of("spotify", "apple_music"));
         params.setTracks(List.of(track));
         return params;
+    }
+
+    public static ProductEventDto.ProductRow validProductRow() {
+        ProductEventDto.ProductRow row = new ProductEventDto.ProductRow();
+        row.setId("00000000-0000-0000-0000-000000000001");
+        row.setUpc(" 012-345-678-905 ");
+        row.setTitle(" Thriller ");
+        row.setReleaseDate(20000);
+        row.setGenre(" Pop ");
+        row.setLanguage(" EN ");
+        row.setArtworkUri(" s3://artwork/thriller.jpg ");
+        row.setDspTargets("[\"Spotify\",\"Apple_Music\"]");
+        row.setOwnershipSplits("[{\"rightsHolder\":\" MJ Estate \",\"percentage\":100.0}]");
+        row.setStatus("SUBMITTED");
+        return row;
+    }
+
+    public static TrackEventDto.TrackRow validTrackRow() {
+        TrackEventDto.TrackRow row = new TrackEventDto.TrackRow();
+        row.setId("00000000-0000-0000-0000-000000000002");
+        row.setProductId("00000000-0000-0000-0000-000000000001");
+        row.setIsrc(" usrc17607839 ");
+        row.setTitle(" Thriller ");
+        row.setTrackNumber(1);
+        row.setAudioFileUri(" s3://audio/thriller.wav ");
+        row.setDuration(358);
+        row.setExplicit(0);
+        row.setContributors("[{\"name\":\" Michael Jackson \",\"role\":\"MAIN_ARTIST\"}]");
+        row.setOwnershipSplits("[{\"rightsHolder\":\" MJ Estate \",\"percentage\":100.0}]");
+        row.setStatus("PENDING");
+        return row;
     }
 }

@@ -2,6 +2,7 @@ package com.productcatalog.application.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.productcatalog.ValidationBuilders;
 import com.productcatalog.application.kafka.dtos.ProductEventDto;
 import com.productcatalog.application.kafka.mappers.ProductEventMapper;
 import com.productcatalog.domain.model.Product;
@@ -23,24 +24,9 @@ class ProductEventMapperTest {
         mapper = new ProductEventMapper(objectMapper);
     }
 
-    private ProductEventDto.ProductRow validRow() {
-        ProductEventDto.ProductRow row = new ProductEventDto.ProductRow();
-        row.setId("00000000-0000-0000-0000-000000000001");
-        row.setUpc(" 012-345-678-905 ");
-        row.setTitle(" Thriller ");
-        row.setReleaseDate(20000);
-        row.setGenre(" Pop ");
-        row.setLanguage(" EN ");
-        row.setArtworkUri(" s3://artwork/thriller.jpg ");
-        row.setDspTargets("[\"Spotify\",\"Apple_Music\"]");
-        row.setOwnershipSplits("[{\"rightsHolder\":\" MJ Estate \",\"percentage\":100.0}]");
-        row.setStatus("SUBMITTED");
-        return row;
-    }
-
     @Test
     void shouldMapProductCorrectlyWhenRowIsValid() {
-        Product product = mapper.toProductFromProductRow(validRow());
+        Product product = mapper.toProductFromProductRow(ValidationBuilders.validProductRow());
 
         assertThat(product.getId().toString()).isEqualTo("00000000-0000-0000-0000-000000000001");
         assertThat(product.getStatus()).isEqualTo(ProductStatus.SUBMITTED);
@@ -48,38 +34,38 @@ class ProductEventMapperTest {
 
     @Test
     void shouldStripAndNormalizeUpcWhenUpcHasDashesAndSpaces() {
-        Product product = mapper.toProductFromProductRow(validRow());
+        Product product = mapper.toProductFromProductRow(ValidationBuilders.validProductRow());
         assertThat(product.getUpc()).isEqualTo("012345678905");
     }
 
     @Test
     void shouldStripTitleWhenTitleHasLeadingAndTrailingSpaces() {
-        Product product = mapper.toProductFromProductRow(validRow());
+        Product product = mapper.toProductFromProductRow(ValidationBuilders.validProductRow());
         assertThat(product.getTitle()).isEqualTo("Thriller");
     }
 
     @Test
     void shouldLowercaseLanguageWhenLanguageIsUppercase() {
-        Product product = mapper.toProductFromProductRow(validRow());
+        Product product = mapper.toProductFromProductRow(ValidationBuilders.validProductRow());
         assertThat(product.getLanguage()).isEqualTo("en");
     }
 
     @Test
     void shouldLowercaseDspTargetsWhenTargetsAreUppercase() {
-        Product product = mapper.toProductFromProductRow(validRow());
+        Product product = mapper.toProductFromProductRow(ValidationBuilders.validProductRow());
         assertThat(product.getDspTargets()).containsExactly("spotify", "apple_music");
     }
 
     @Test
     void shouldStripOwnershipSplitRightsHolderWhenRightsHolderHasSpaces() {
-        Product product = mapper.toProductFromProductRow(validRow());
+        Product product = mapper.toProductFromProductRow(ValidationBuilders.validProductRow());
         assertThat(product.getOwnershipSplits()).hasSize(1);
         assertThat(product.getOwnershipSplits().get(0).getRightsHolder()).isEqualTo("MJ Estate");
     }
 
     @Test
     void shouldReturnNullUpcWhenUpcIsNull() {
-        ProductEventDto.ProductRow row = validRow();
+        ProductEventDto.ProductRow row = ValidationBuilders.validProductRow();
         row.setUpc(null);
         Product product = mapper.toProductFromProductRow(row);
         assertThat(product.getUpc()).isNull();
@@ -87,7 +73,7 @@ class ProductEventMapperTest {
 
     @Test
     void shouldReturnNullArtworkUriWhenArtworkUriIsNull() {
-        ProductEventDto.ProductRow row = validRow();
+        ProductEventDto.ProductRow row = ValidationBuilders.validProductRow();
         row.setArtworkUri(null);
         Product product = mapper.toProductFromProductRow(row);
         assertThat(product.getArtworkUri()).isNull();
@@ -95,7 +81,7 @@ class ProductEventMapperTest {
 
     @Test
     void shouldReturnNullOwnershipSplitsWhenOwnershipSplitsIsNull() {
-        ProductEventDto.ProductRow row = validRow();
+        ProductEventDto.ProductRow row = ValidationBuilders.validProductRow();
         row.setOwnershipSplits(null);
         Product product = mapper.toProductFromProductRow(row);
         assertThat(product.getOwnershipSplits()).isNull();
@@ -103,7 +89,7 @@ class ProductEventMapperTest {
 
     @Test
     void shouldReturnNullDspTargetsWhenDspTargetsIsNull() {
-        ProductEventDto.ProductRow row = validRow();
+        ProductEventDto.ProductRow row = ValidationBuilders.validProductRow();
         row.setDspTargets(null);
         Product product = mapper.toProductFromProductRow(row);
         assertThat(product.getDspTargets()).isNull();
