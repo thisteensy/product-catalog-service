@@ -1,14 +1,11 @@
 package com.productcatalog.application.kafka;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.productcatalog.domain.model.ChangedByType;
 import com.productcatalog.domain.model.Track;
 import com.productcatalog.domain.model.TrackStatus;
+import com.productcatalog.domain.model.ValidationOutcome;
 import com.productcatalog.domain.ports.ProductRepository;
-import com.productcatalog.domain.ports.TrackRepository;
-import com.productcatalog.infrastructure.rules.RuleResult;
-import com.productcatalog.infrastructure.rules.RuleSeverity;
-import com.productcatalog.infrastructure.rules.TrackRules;
+import com.productcatalog.domain.ports.RuleEngine;
+import com.productcatalog.domain.ports.ValidationOrchestrationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -25,26 +22,26 @@ public class TrackValidationConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(TrackValidationConsumer.class);
 
-    private final ObjectMapper objectMapper;
-    private final TrackRepository trackRepository;
+    private final TrackEventMapper trackEventMapper;
     private final ProductRepository productRepository;
-    private final TrackRules trackRules;
+    private final RuleEngine ruleEngine;
+    private final ValidationOrchestrationService orchestrationService;
 
-    public TrackValidationConsumer(ObjectMapper objectMapper,
-                                   TrackRepository trackRepository,
+    public TrackValidationConsumer(TrackEventMapper trackEventMapper,
                                    ProductRepository productRepository,
-                                   TrackRules trackRules) {
-        this.objectMapper = objectMapper;
-        this.trackRepository = trackRepository;
+                                   RuleEngine ruleEngine,
+                                   ValidationOrchestrationService orchestrationService) {
+        this.trackEventMapper = trackEventMapper;
         this.productRepository = productRepository;
-        this.trackRules = trackRules;
+        this.ruleEngine = ruleEngine;
+        this.orchestrationService = orchestrationService;
     }
 
     @KafkaListener(topics = "catalog.music_catalog.tracks", groupId = "track-validation")
     public void consume(@Payload String message,
                         @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
         try {
-            TrackEventDto event = objectMapper.readValue(message, TrackEventDto.class);
+            TrackEventDto event = trackEventMapper.toDto(message);
 
             if (event.getPayload() == null || event.getPayload().getAfter() == null) {
                 log.debug("Skipping track event with no after state -- likely a delete");
@@ -66,31 +63,13 @@ public class TrackValidationConsumer {
             UUID trackId = UUID.fromString(event.getPayload().getAfter().getId());
             UUID productId = UUID.fromString(event.getPayload().getAfter().getProductId());
 
-            Track track = trackRepository.findById(trackId)
-                    .orElseThrow(() -> new RuntimeException("Track not found: " + trackId));
-
             List<String> dspTargets = productRepository.findById(productId)
                     .map(p -> p.getDspTargets())
                     .orElse(List.of());
 
-            List<RuleResult> results = trackRules.evaluate(track, dspTargets);
-
-            boolean hasBlockingFailure = results.stream()
-                    .anyMatch(r -> r.getSeverity() == RuleSeverity.BLOCKING);
-            boolean hasWarning = results.stream()
-                    .anyMatch(r -> r.getSeverity() == RuleSeverity.WARNING);
-
-            TrackStatus newStatus;
-            if (hasBlockingFailure) {
-                newStatus = TrackStatus.VALIDATION_FAILED;
-            } else if (hasWarning) {
-                newStatus = TrackStatus.NEEDS_REVIEW;
-            } else {
-                newStatus = TrackStatus.VALIDATED;
-            }
-
-            trackRepository.updateStatus(trackId, newStatus, null, ChangedByType.SYSTEM, null);
-            log.info("Validated track {} -- status: {}", trackId, newStatus);
+            Track track = trackEventMapper.toTrackFromTrackRow(event.getPayload().getAfter());
+            ValidationOutcome outcome = ruleEngine.evaluateTrack(track, dspTargets);
+            orchestrationService.onTrackEvaluated(trackId, productId, outcome);
 
         } catch (Exception e) {
             log.error("Failed to process track event -- routing to DLQ", e);

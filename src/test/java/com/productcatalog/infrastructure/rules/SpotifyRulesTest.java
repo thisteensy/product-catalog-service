@@ -1,8 +1,5 @@
-package com.productcatalog.infrastructure;
+package com.productcatalog.infrastructure.rules;
 
-import com.productcatalog.infrastructure.rules.RuleResult;
-import com.productcatalog.infrastructure.rules.RuleSeverity;
-import com.productcatalog.infrastructure.rules.SpotifyRules;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

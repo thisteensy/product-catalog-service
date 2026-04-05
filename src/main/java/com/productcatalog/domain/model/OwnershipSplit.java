@@ -1,13 +1,20 @@
 package com.productcatalog.domain.model;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
 public class OwnershipSplit {
 
     private final String rightsHolder;
     private final double percentage;
 
+    @JsonCreator
+    public OwnershipSplit(
+            @JsonProperty("rightsHolder") String rightsHolder,
+            @JsonProperty("percentage") double percentage) {
+        this.rightsHolder = rightsHolder;
+        this.percentage = percentage;
+    }
 }

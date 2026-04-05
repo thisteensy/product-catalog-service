@@ -18,6 +18,14 @@ public class ProductEventMapper {
         this.objectMapper = objectMapper;
     }
 
+    public ProductEventDto toDto(String message) {
+        try {
+            return objectMapper.readValue(message, ProductEventDto.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to deserialize product event", e);
+        }
+    }
+
     public Product toProductFromProductRow(ProductEventDto.ProductRow row) {
         try {
             return Product.builder()
