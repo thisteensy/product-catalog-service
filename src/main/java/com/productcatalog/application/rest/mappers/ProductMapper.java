@@ -13,6 +13,8 @@ public class ProductMapper {
         return Product.builder()
                 .upc(params.getUpc() == null ? null : params.getUpc().strip().replace("-", "").replace(" ", ""))
                 .title(params.getTitle() == null ? null : params.getTitle().strip())
+                .artist(params.getArtist() == null ? null : params.getArtist().strip())
+                .label(params.getLabel() == null ? null : params.getLabel().strip())
                 .releaseDate(params.getReleaseDate())
                 .genre(params.getGenre() == null ? null : params.getGenre().strip())
                 .language(params.getLanguage() == null ? null : params.getLanguage().strip().toLowerCase())

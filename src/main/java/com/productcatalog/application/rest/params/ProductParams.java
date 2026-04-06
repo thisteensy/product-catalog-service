@@ -21,6 +21,12 @@ public class ProductParams {
     @NotBlank(message = "Title must not be blank")
     private String title;
 
+    @NotBlank(message = "Artist must be specified")
+    private String artist;
+
+    @NotBlank(message = "Label must be specified")
+    private String label;
+
     @NotNull(message = "Release date must be specified")
     private LocalDate releaseDate;
 

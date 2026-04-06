@@ -71,6 +71,8 @@ public class ProductRepositoryImpl implements ProductRepository {
                     product.getId().toString(),
                     product.getUpc(),
                     product.getTitle(),
+                    product.getArtist(),
+                    product.getLabel(),
                     product.getReleaseDate(),
                     product.getGenre(),
                     product.getLanguage(),
@@ -109,6 +111,8 @@ public class ProductRepositoryImpl implements ProductRepository {
                 .orElseThrow(() -> new IllegalStateException("Product not found: " + product.getId()));
             entity.setUpc(product.getUpc());
             entity.setTitle(product.getTitle());
+            entity.setArtist(product.getArtist());
+            entity.setLabel(product.getLabel());
             entity.setReleaseDate(product.getReleaseDate());
             entity.setGenre(product.getGenre());
             entity.setLanguage(product.getLanguage());
@@ -202,6 +206,8 @@ public class ProductRepositoryImpl implements ProductRepository {
                     UUID.fromString(entity.getId()),
                     entity.getUpc(),
                     entity.getTitle(),
+                    entity.getArtist(),
+                    entity.getLabel(),
                     tracks,
                     entity.getReleaseDate(),
                     entity.getGenre(),

@@ -25,6 +25,12 @@ public class ProductEntity {
     @Column(name = "title")
     private String title;
 
+    @Column(name = "artist")
+    private String artist;
+
+    @Column(name = "label")
+    private String label;
+
     @Column(name = "release_date")
     private LocalDate releaseDate;
 

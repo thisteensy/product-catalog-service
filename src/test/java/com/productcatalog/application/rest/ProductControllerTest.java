@@ -46,6 +46,8 @@ class ProductControllerTest {
                     return Product.builder()
                             .upc(params.getUpc())
                             .title(params.getTitle())
+                            .artist(params.getArtist())
+                            .label(params.getLabel())
                             .tracks(params.getTracks() == null ? null : params.getTracks().stream()
                                     .map(t -> Track.builder()
                                             .id(UUID.randomUUID())

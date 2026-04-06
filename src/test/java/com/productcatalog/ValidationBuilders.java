@@ -33,6 +33,8 @@ public class ValidationBuilders {
                 .id(UUID.randomUUID())
                 .upc("012345678905")
                 .title("Thriller")
+                .artist("Michael Jackson")
+                .label("Epic Records")
                 .tracks(List.of(validTrack()))
                 .releaseDate(LocalDate.now().plusMonths(1))
                 .genre("pop")
@@ -106,6 +108,8 @@ public class ValidationBuilders {
         ProductParams params = new ProductParams();
         params.setUpc("012345678905");
         params.setTitle("Thriller");
+        params.setArtist("Michael Jackson");
+        params.setLabel("Epic Records");
         params.setReleaseDate(LocalDate.now().plusMonths(1));
         params.setGenre("pop");
         params.setLanguage("en");
