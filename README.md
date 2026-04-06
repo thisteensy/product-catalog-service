@@ -4,7 +4,7 @@ A take-home assignment for FUGA's Java Engineer position on the QC team. The bri
 
 ## What I built
 
-A Spring Boot service with two main responsibilities: a REST API supporting full CRUD operations including a catalog search endpoint, on music products (parent object: album, EP, single, etc.) and tracks, and an event-driven validation pipeline that processes submissions asynchronously via Kafka.
+A Spring Boot service with two main responsibilities: a REST API supporting full CRUD operations on music products and tracks, including a catalog search endpoint, and an event-driven validation pipeline that processes submissions asynchronously via Kafka.
 
 Product-level validation and track validation run concurrently. After the product passes validation it waits in `AWAITING_TRACK_VALIDATION` until all its tracks pass, only then does it move to `VALIDATED` and become eligible for DSP delivery.
 
@@ -102,6 +102,13 @@ flowchart LR
     style Validation fill:#fff,stroke:#7a3db8,color:#fff
     style Downstream fill:#fff,stroke:#7a3db8,color:#fff
 ```
+## Data model
+
+The domain model is loosely informed by the DDEX standard for music metadata exchange. A `Product` represents a music release (an album, EP, or single) and carries the metadata a distributor needs to identify and deliver a release: UPC, title, artist, label, genre, language, release date, artwork, and DSP targets.
+
+Each product has one or more `Track` entities with their own metadata: ISRC, title, track number, duration, audio file, and explicit flag.
+
+Both products and tracks carry two nested structures: `contributors` (people involved in the release with typed roles like `MAIN_ARTIST` and `COMPOSER`) and `ownershipSplits` (rights holders and their percentage shares). DSP targets on the product determine which platform-specific validation rules are applied at submission time.
 
 ## Key decisions
 
@@ -111,7 +118,7 @@ The mappers (`ProductEventMapper`, `TrackEventMapper`) normalize and sanitize as
 
 **Debezium for change capture**
 
-Rather than publishing events explicitly from the application, I used Debezium to capture changes from MariaDB's binary log. This means the database is the source of truth and events flow from it naturally, there's no risk of a write succeeding while the event publish fails.
+Rather than publishing events explicitly from the application, I used Debezium to capture changes from MariaDB's binary log. This means the database is the source of truth and events flow from it naturally, there's no risk of a write succeeding while the event publish fails. Status updates from the validation pipeline follow the same principle, routed through Kafka rather than written directly to the database.
 
 **Keeping business logic out of the consumers**
 
@@ -129,7 +136,7 @@ The Kafka Streams app lives in the same service as everything else. I wouldn't d
 
 **Status update routing through Kafka**
 
-The orchestration service publishes to catalog.validation.status-updates rather than writing to MariaDB directly, decoupling validation decisions from persistence and making failures Kafka-native.
+The orchestration service publishes to `catalog.validation.status-updates` rather than writing to MariaDB directly, decoupling validation decisions from persistence and making failures Kafka-native.
 
 ## Running locally
 
@@ -137,7 +144,6 @@ Requires Docker and Java 21.
 ```bash
 ./init.sh
 ```
-
 This builds the jar, starts all services, and registers the Debezium connector. The API is available at `http://localhost:8080` once the script completes.
 
 ## Running the tests
@@ -171,79 +177,19 @@ Sample payloads for testing the pipeline are available in the [samples directory
 
 The stack includes built-in observability at two levels.
 
-**Infrastructure metrics** are handled by the Confluent Kafka Connect image, which exports JMX metrics covering consumer lag, throughput, and connector health out of the box. Consumer lag on the `product-validation` and `track-validation` consumer groups is the most useful signal for this pipeline, if either falls behind, validation is slow.
+**Infrastructure metrics** 
+
+These are handled by the Confluent Kafka Connect image, which exports JMX metrics covering consumer lag, throughput, and connector health out of the box. Consumer lag on the `product-validation` and `track-validation` consumer groups is the most useful signal for this pipeline. If either falls behind, validation is slow.
 
 **Distributed tracing**
 
-The service includes Micrometer Tracing via the Actuator dependency, but no tracing backend is configured. In production I'd reach for OpenTelemetry with a collector exporting to Tempo or Jaeger.
-
-If a consumer was lagging, my first three checks would be consumer lag and offset (is it falling behind and at what rate), resource utilization (is the consumer CPU or memory bound, or is it blocked on I/O), and distributed traces (is a specific message type taking significantly longer to process than others, pointing to a rule or a DB query as the bottleneck). Tracing is particularly useful here because a slow rule evaluation or a slow MariaDB read inside the validation consumer would show up as a long span, which lag metrics alone can't tell you.
-
-Spring Kafka supports header-based trace context propagation, so a trace started at `POST /products` can follow the event through the validation consumers and into the streams topology, giving a single timeline for the full submission lifecycle.
-
-**Local debugging commands**
-
-When running locally, the following commands are useful for inspecting the pipeline without a UI:
-
-Check consumer lag for the validation consumers:
-```bash
-docker exec kafka /opt/kafka/bin/kafka-consumer-groups.sh \
-  --bootstrap-server localhost:9092 \
-  --describe \
-  --group product-validation
-
-docker exec kafka /opt/kafka/bin/kafka-consumer-groups.sh \
-  --bootstrap-server localhost:9092 \
-  --describe \
-  --group track-validation
-```
-
-Check Debezium connector status:
-```bash
-curl http://localhost:8083/connectors/music-catalog-connector/status
-```
-
-Inspect messages in the products topic:
-```bash
-docker exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
-  --bootstrap-server localhost:9092 \
-  --topic catalog.music_catalog.products \
-  --from-beginning \
-  --max-messages 10
-```
-
-Inspect the DLQ:
-```bash
-docker exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
-  --bootstrap-server localhost:9092 \
-  --topic product-dlq \
-  --from-beginning
-```
-
-Check Kafka Streams application state:
-```bash
-curl http://localhost:8080/actuator/health
-```
-
-The `kafkaStreams` component will show one of the following states: `RUNNING`, `REBALANCING`, `ERROR`, `PAUSED`, or `NOT_RUNNING`. `REBALANCING` is normal on startup or after a redeployment, it means the topology is reassigning partitions. `ERROR` means the streams thread has died and needs investigation.
-
-Check how many records the topology has processed:
-```bash
-docker logs product-catalog-service | grep "Processed [^0] total records"
-```
-
-This filters the Kafka Streams periodic summary log for any poll cycle where records were actually processed, which is useful for confirming the topology is consuming events rather than sitting idle.
-
-These are the same metrics AKHQ surfaces in its UI, it uses the Kafka Connect REST API and Kafka AdminClient under the hood.
-
-**Application health** is exposed via Spring Boot Actuator at `http://localhost:8080/actuator/health`. All status transitions are logged at INFO level, so the validation pipeline is fully traceable through the application logs:
-```bash
-docker logs product-catalog-service | grep "transitioned to"
-```
+The service includes Micrometer Tracing via the Actuator dependency, but no tracing backend is configured. In production I'd reach for OpenTelemetry with a collector exporting to Tempo or Jaeger. Spring Kafka supports header-based trace context propagation, so a trace started at `POST /products` can follow the event through the validation consumers and into the streams topology, giving a single timeline for the full submission lifecycle.
 
 **What I'd add in production**
 
-Custom Micrometer counters for business outcomes, products validated, failed, and flagged for review, exposed via the Actuator metrics endpoint and scraped by Prometheus. These are domain events that infrastructure metrics can't see, and they're the numbers a QC team would actually care about day to day. The natural place for these counters is the application layer, in the consumers after the orchestration service call, so the domain stays clean.
+In production a mature system would include integration with an observability platform like Datadog or Grafana Stack (Prometheus, Loki, Tempo) to surface metrics, logs, and traces in one place.
+
+Custom Micrometer counters for business outcomes -- products validated, failed, and flagged for review -- exposed via the Actuator metrics endpoint and scraped by Prometheus. These are domain events that infrastructure metrics can't see, and they're the numbers a QC team would actually care about day to day.
 
 A DLQ monitor would also be a first priority, alerting via a Slack webhook whenever a message lands in `product-dlq` so the team can inspect and replay failed messages promptly.
 
