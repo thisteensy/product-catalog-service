@@ -1,5 +1,6 @@
 package com.productcatalog.application.rest.mappers;
 
+import com.productcatalog.application.rest.dtos.ProductResponseDto;
 import com.productcatalog.application.rest.params.ProductParams;
 import com.productcatalog.domain.model.*;
 import org.springframework.stereotype.Component;
@@ -10,7 +11,7 @@ import java.util.UUID;
 @Component
 public class ProductMapper {
 
-    public Product toProductFromProductParams(ProductParams params) {
+    public Product fromProductParamsToProduct(ProductParams params) {
         return Product.builder()
                 .upc(params.getUpc() == null ? null : params.getUpc().strip().replace("-", "").replace(" ", ""))
                 .title(params.getTitle() == null ? null : params.getTitle().strip())
@@ -29,12 +30,31 @@ public class ProductMapper {
                         .map(t -> t == null ? null : t.strip().toLowerCase(Locale.ROOT))
                         .toList())
                 .tracks(params.getTracks() == null ? null : params.getTracks().stream()
-                        .map(this::toTrackFromTrackParams)
+                        .map(this::fromTrackParamsToTrack)
                         .toList())
                 .build();
     }
 
-    private Track toTrackFromTrackParams(ProductParams.TrackParams params) {
+
+    public ProductResponseDto fromProductToProductResponseDto(Product product) {
+        return ProductResponseDto.builder()
+                .id(product.getId())
+                .upc(product.getUpc())
+                .title(product.getTitle())
+                .artist(product.getArtist())
+                .label(product.getLabel())
+                .tracks(product.getTracks())
+                .releaseDate(product.getReleaseDate())
+                .genre(product.getGenre())
+                .language(product.getLanguage())
+                .ownershipSplits(product.getOwnershipSplits())
+                .artworkUri(product.getArtworkUri())
+                .dspTargets(product.getDspTargets())
+                .status(product.getStatus())
+                .build();
+    }
+
+    private Track fromTrackParamsToTrack(ProductParams.TrackParams params) {
         return Track.builder()
                 .id(UUID.randomUUID())
                 .isrc(params.getIsrc() == null ? null : params.getIsrc().strip().toUpperCase(Locale.ROOT))

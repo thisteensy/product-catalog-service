@@ -2,6 +2,7 @@ package com.productcatalog;
 
 import com.productcatalog.application.kafka.dtos.ProductEventDto;
 import com.productcatalog.application.kafka.dtos.TrackEventDto;
+import com.productcatalog.application.rest.dtos.ProductResponseDto;
 import com.productcatalog.application.rest.params.ProductParams;
 import com.productcatalog.domain.model.*;
 import com.productcatalog.infrastructure.rules.RuleResult;
@@ -30,6 +31,24 @@ public class ValidationBuilders {
 
     public static Product validProduct() {
         return Product.builder()
+                .id(UUID.randomUUID())
+                .upc("012345678905")
+                .title("Thriller")
+                .artist("Michael Jackson")
+                .label("Epic Records")
+                .tracks(List.of(validTrack()))
+                .releaseDate(LocalDate.now().plusMonths(1))
+                .genre("pop")
+                .language("en")
+                .ownershipSplits(List.of(new OwnershipSplit("MJ Estate", 100.0)))
+                .artworkUri("s3://artwork/thriller.jpg")
+                .dspTargets(List.of("spotify", "apple_music"))
+                .status(ProductStatus.SUBMITTED)
+                .build();
+    }
+
+    public static ProductResponseDto validProductResponseDto() {
+        return ProductResponseDto.builder()
                 .id(UUID.randomUUID())
                 .upc("012345678905")
                 .title("Thriller")

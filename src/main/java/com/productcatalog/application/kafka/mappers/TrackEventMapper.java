@@ -27,7 +27,7 @@ public class TrackEventMapper {
         }
     }
 
-    public Track toTrackFromTrackRow(TrackEventDto.TrackRow row) {
+    public Track fromTrackRowToTrack(TrackEventDto.TrackRow row) {
         try {
             return Track.builder()
                     .id(UUID.fromString(row.getId()))

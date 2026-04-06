@@ -24,7 +24,7 @@ class TrackEventMapperTest {
 
     @Test
     void shouldMapTrackCorrectly_whenRowIsValid() {
-        Track track = mapper.toTrackFromTrackRow(ValidationBuilders.validTrackRow());
+        Track track = mapper.fromTrackRowToTrack(ValidationBuilders.validTrackRow());
 
         assertThat(track.getId().toString()).isEqualTo("00000000-0000-0000-0000-000000000002");
         assertThat(track.getStatus()).isEqualTo(TrackStatus.PENDING);
@@ -32,25 +32,25 @@ class TrackEventMapperTest {
 
     @Test
     void shouldUppercaseIsrc_whenIsrcIsLowercase() {
-        Track track = mapper.toTrackFromTrackRow(ValidationBuilders.validTrackRow());
+        Track track = mapper.fromTrackRowToTrack(ValidationBuilders.validTrackRow());
         assertThat(track.getIsrc()).isEqualTo("USRC17607839");
     }
 
     @Test
     void shouldStripTitle_whenTitleHasLeadingAndTrailingSpaces() {
-        Track track = mapper.toTrackFromTrackRow(ValidationBuilders.validTrackRow());
+        Track track = mapper.fromTrackRowToTrack(ValidationBuilders.validTrackRow());
         assertThat(track.getTitle()).isEqualTo("Thriller");
     }
 
     @Test
     void shouldStripAudioFileUri_whenUriHasSpaces() {
-        Track track = mapper.toTrackFromTrackRow(ValidationBuilders.validTrackRow());
+        Track track = mapper.fromTrackRowToTrack(ValidationBuilders.validTrackRow());
         assertThat(track.getAudioFileUri()).isEqualTo("s3://audio/thriller.wav");
     }
 
     @Test
     void shouldSetExplicitFalse_whenExplicitIsZero() {
-        Track track = mapper.toTrackFromTrackRow(ValidationBuilders.validTrackRow());
+        Track track = mapper.fromTrackRowToTrack(ValidationBuilders.validTrackRow());
         assertThat(track.isExplicit()).isFalse();
     }
 
@@ -58,7 +58,7 @@ class TrackEventMapperTest {
     void shouldSetExplicitTrue_whenExplicitIsOne() {
         TrackEventDto.TrackRow row = ValidationBuilders.validTrackRow();
         row.setExplicit(1);
-        Track track = mapper.toTrackFromTrackRow(row);
+        Track track = mapper.fromTrackRowToTrack(row);
         assertThat(track.isExplicit()).isTrue();
     }
 
@@ -66,13 +66,13 @@ class TrackEventMapperTest {
     void shouldSetExplicitFalse_whenExplicitIsNull() {
         TrackEventDto.TrackRow row = ValidationBuilders.validTrackRow();
         row.setExplicit(null);
-        Track track = mapper.toTrackFromTrackRow(row);
+        Track track = mapper.fromTrackRowToTrack(row);
         assertThat(track.isExplicit()).isFalse();
     }
 
     @Test
     void shouldDeserializeContributors_whenContributorsJsonIsValid() {
-        Track track = mapper.toTrackFromTrackRow(ValidationBuilders.validTrackRow());
+        Track track = mapper.fromTrackRowToTrack(ValidationBuilders.validTrackRow());
         assertThat(track.getContributors()).hasSize(1);
         assertThat(track.getContributors().get(0).getName()).isEqualTo("Michael Jackson");
         assertThat(track.getContributors().get(0).getRole()).isEqualTo(ContributorRole.MAIN_ARTIST);
@@ -80,13 +80,13 @@ class TrackEventMapperTest {
 
     @Test
     void shouldStripContributorName_whenNameHasSpaces() {
-        Track track = mapper.toTrackFromTrackRow(ValidationBuilders.validTrackRow());
+        Track track = mapper.fromTrackRowToTrack(ValidationBuilders.validTrackRow());
         assertThat(track.getContributors().get(0).getName()).isEqualTo("Michael Jackson");
     }
 
     @Test
     void shouldDeserializeOwnershipSplits_whenOwnershipSplitsJsonIsValid() {
-        Track track = mapper.toTrackFromTrackRow(ValidationBuilders.validTrackRow());
+        Track track = mapper.fromTrackRowToTrack(ValidationBuilders.validTrackRow());
         assertThat(track.getOwnershipSplits()).hasSize(1);
         assertThat(track.getOwnershipSplits().get(0).getRightsHolder()).isEqualTo("MJ Estate");
         assertThat(track.getOwnershipSplits().get(0).getPercentage()).isEqualTo(100.0);
@@ -96,7 +96,7 @@ class TrackEventMapperTest {
     void shouldReturnZeroTrackNumber_whenTrackNumberIsNull() {
         TrackEventDto.TrackRow row = ValidationBuilders.validTrackRow();
         row.setTrackNumber(null);
-        Track track = mapper.toTrackFromTrackRow(row);
+        Track track = mapper.fromTrackRowToTrack(row);
         assertThat(track.getTrackNumber()).isZero();
     }
 
@@ -104,7 +104,7 @@ class TrackEventMapperTest {
     void shouldReturnZeroDuration_whenDurationIsNull() {
         TrackEventDto.TrackRow row = ValidationBuilders.validTrackRow();
         row.setDuration(null);
-        Track track = mapper.toTrackFromTrackRow(row);
+        Track track = mapper.fromTrackRowToTrack(row);
         assertThat(track.getDuration()).isZero();
     }
 
@@ -112,7 +112,7 @@ class TrackEventMapperTest {
     void shouldReturnNullContributors_whenContributorsIsNull() {
         TrackEventDto.TrackRow row = ValidationBuilders.validTrackRow();
         row.setContributors(null);
-        Track track = mapper.toTrackFromTrackRow(row);
+        Track track = mapper.fromTrackRowToTrack(row);
         assertThat(track.getContributors()).isNull();
     }
 
@@ -120,7 +120,7 @@ class TrackEventMapperTest {
     void shouldReturnNullOwnershipSplits_whenOwnershipSplitsIsNull() {
         TrackEventDto.TrackRow row = ValidationBuilders.validTrackRow();
         row.setOwnershipSplits(null);
-        Track track = mapper.toTrackFromTrackRow(row);
+        Track track = mapper.fromTrackRowToTrack(row);
         assertThat(track.getOwnershipSplits()).isNull();
     }
 

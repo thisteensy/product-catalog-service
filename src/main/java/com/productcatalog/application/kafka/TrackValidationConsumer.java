@@ -4,9 +4,7 @@ import com.productcatalog.application.kafka.dtos.TrackEventDto;
 import com.productcatalog.application.kafka.mappers.TrackEventMapper;
 import com.productcatalog.domain.model.Track;
 import com.productcatalog.domain.model.TrackStatus;
-import com.productcatalog.domain.model.ValidationOutcome;
 import com.productcatalog.domain.ports.out.ProductRepository;
-import com.productcatalog.domain.ports.out.RuleEngine;
 import com.productcatalog.domain.ports.in.ValidationOrchestrationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +14,6 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -59,7 +56,7 @@ public class TrackValidationConsumer {
         }
 
         UUID productId = UUID.fromString(event.getPayload().getAfter().getProductId());
-        Track track = trackEventMapper.toTrackFromTrackRow(event.getPayload().getAfter());
+        Track track = trackEventMapper.fromTrackRowToTrack(event.getPayload().getAfter());
         orchestrationService.submitTrack(track, productId);
     }
 }

@@ -228,10 +228,6 @@ The same API could back a real-time state visualization, a live view of in-fligh
 
 **Contract testing** would be used to ensure that the API delivers what the UI expects.
 
-### Refactoring
-
-**Store DSP Targets in ProductValidationState** The current behavior is that for every track event it calls the database for the complete product. This is obviously inefficient. The DSP targets should be loaded once 
-
 ### CI/CD
 
 **Kubernetes deployment** The validation pipeline has two distinct operational profiles that would drive the Kubernetes deployment strategy. The product API is stateless and scales horizontally with a standard `Deployment`. The Kafka Streams topology is stateful, it maintains a RocksDB state store that needs to survive pod restarts. That means a `StatefulSet` with a persistent volume claim per replica, careful partition assignment so each replica owns a consistent subset of partitions, and a readiness probe backed by the custom `KafkaStreamsHealthIndicator` so traffic only routes to pods whose topology is in `RUNNING` state. The Debezium connector registration, currently handled by `init.sh`, would move to a Kubernetes `Job` that runs after Kafka Connect is healthy, using an init container or a readiness gate to sequence the startup correctly.

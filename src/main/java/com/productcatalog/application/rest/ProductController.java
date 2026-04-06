@@ -1,5 +1,6 @@
 package com.productcatalog.application.rest;
 
+import com.productcatalog.application.rest.dtos.ProductResponseDto;
 import com.productcatalog.application.rest.mappers.ProductMapper;
 import com.productcatalog.application.rest.params.ProductParams;
 import com.productcatalog.domain.model.CatalogSearchResult;
@@ -40,13 +41,16 @@ public class ProductController {
             @ApiResponse(responseCode = "400", description = "Invalid product data")
     })
     @PostMapping
-    public ResponseEntity<Product> create(@Valid @RequestBody ProductParams productParams) {
-        Product product = productMapper.toProductFromProductParams(productParams);
+    public ResponseEntity<ProductResponseDto> create(@Valid @RequestBody ProductParams productParams) {
+        Product product = productMapper.fromProductParamsToProduct(productParams);
         Product toSave = product.toBuilder()
                 .id(UUID.randomUUID())
                 .status(ProductStatus.SUBMITTED)
                 .build();
-        Product saved = productRepository.save(toSave);
+        if (productRepository.findByUpc(toSave.getUpc()).isPresent()) {
+            return ResponseEntity.status(409).build();
+        }
+        ProductResponseDto saved = productMapper.fromProductToProductResponseDto(productRepository.save(toSave));
         return ResponseEntity.created(URI.create("/products/" + saved.getId())).body(saved);
     }
 
@@ -56,8 +60,9 @@ public class ProductController {
             @ApiResponse(responseCode = "404", description = "Product not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getById(@PathVariable UUID id) {
+    public ResponseEntity<ProductResponseDto> getById(@PathVariable UUID id) {
         return productRepository.findById(id)
+                .map(productMapper::fromProductToProductResponseDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -65,8 +70,11 @@ public class ProductController {
     @Operation(summary = "Get all products")
     @ApiResponse(responseCode = "200", description = "List of products")
     @GetMapping
-    public ResponseEntity<List<Product>> getAll() {
-        return ResponseEntity.ok(productRepository.findAll());
+    public ResponseEntity<List<ProductResponseDto>> getAll() {
+
+        return ResponseEntity.ok(productRepository.findAll().stream()
+                .map(productMapper::fromProductToProductResponseDto)
+                .toList());
     }
 
     @DeleteMapping("/{id}")
@@ -91,11 +99,12 @@ public class ProductController {
         if (productRepository.findById(id).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        Product product = productMapper.toProductFromProductParams(productParams);
+        Product product = productMapper.fromProductParamsToProduct(productParams);
 
         productRepository.update(product.toBuilder().id(id).build());
         return ResponseEntity.ok().build();
     }
+
     @Operation(summary = "Search the catalog by any combination of artist, label, genre, track title, ISRC, or status")
     @ApiResponse(responseCode = "200", description = "Search results")
     @GetMapping("/search")

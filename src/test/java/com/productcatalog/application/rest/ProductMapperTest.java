@@ -20,7 +20,7 @@ class ProductMapperTest {
 
     @Test
     void shouldMapProductCorrectlyWhenParamsAreValid() {
-        Product product = mapper.toProductFromProductParams(validProductParams());
+        Product product = mapper.fromProductParamsToProduct(validProductParams());
 
         assertThat(product.getTitle()).isEqualTo("Thriller");
         assertThat(product.getStatus()).isNull();
@@ -31,7 +31,7 @@ class ProductMapperTest {
         ProductParams params = validProductParams();
         params.setUpc(" 012-345-678-905 ");
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getUpc()).isEqualTo("012345678905");
     }
@@ -41,7 +41,7 @@ class ProductMapperTest {
         ProductParams params = validProductParams();
         params.setTitle(" Thriller ");
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getTitle()).isEqualTo("Thriller");
     }
@@ -51,7 +51,7 @@ class ProductMapperTest {
         ProductParams params = validProductParams();
         params.setLanguage("EN");
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getLanguage()).isEqualTo("en");
     }
@@ -61,7 +61,7 @@ class ProductMapperTest {
         ProductParams params = validProductParams();
         params.setDspTargets(java.util.List.of("Spotify", "Apple_Music"));
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getDspTargets()).containsExactly("spotify", "apple_music");
     }
@@ -74,7 +74,7 @@ class ProductMapperTest {
         split.setPercentage(100.0);
         params.setOwnershipSplits(java.util.List.of(split));
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getOwnershipSplits().get(0).getRightsHolder()).isEqualTo("MJ Estate");
     }
@@ -84,7 +84,7 @@ class ProductMapperTest {
         ProductParams params = validProductParams();
         params.setUpc(null);
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getUpc()).isNull();
     }
@@ -94,14 +94,14 @@ class ProductMapperTest {
         ProductParams params = validProductParams();
         params.setTracks(null);
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getTracks()).isNull();
     }
 
     @Test
     void shouldMapTrackCorrectlyWhenTrackParamsAreValid() {
-        Product product = mapper.toProductFromProductParams(validProductParams());
+        Product product = mapper.fromProductParamsToProduct(validProductParams());
 
         Track track = product.getTracks().get(0);
         assertThat(track.getTitle()).isEqualTo("Thriller");
@@ -114,7 +114,7 @@ class ProductMapperTest {
         ProductParams params = validProductParams();
         params.getTracks().get(0).setIsrc("usrc17607839");
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getTracks().get(0).getIsrc()).isEqualTo("USRC17607839");
     }
@@ -124,7 +124,7 @@ class ProductMapperTest {
         ProductParams params = validProductParams();
         params.getTracks().get(0).setExplicit(true);
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getTracks().get(0).isExplicit()).isTrue();
     }
@@ -137,7 +137,7 @@ class ProductMapperTest {
         contributor.setRole(ContributorRole.MAIN_ARTIST);
         params.getTracks().get(0).setContributors(java.util.List.of(contributor));
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getTracks().get(0).getContributors().get(0).getName())
                 .isEqualTo("Michael Jackson");
@@ -148,7 +148,7 @@ class ProductMapperTest {
         ProductParams params = validProductParams();
         params.getTracks().get(0).setContributors(null);
 
-        Product product = mapper.toProductFromProductParams(params);
+        Product product = mapper.fromProductParamsToProduct(params);
 
         assertThat(product.getTracks().get(0).getContributors()).isNull();
     }

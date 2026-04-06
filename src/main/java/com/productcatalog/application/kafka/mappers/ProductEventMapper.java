@@ -32,7 +32,7 @@ public class ProductEventMapper {
         }
     }
 
-    public Product toProductFromProductRow(ProductEventDto.ProductRow row) {
+    public Product fromProductRowToProduct(ProductEventDto.ProductRow row) {
         try {
             return Product.builder()
                     .id(UUID.fromString(row.getId()))

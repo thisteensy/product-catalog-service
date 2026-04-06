@@ -91,6 +91,12 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public Optional<Product> findByUpc(String upc) {
+        return jpaRepository.findByUpc(upc)
+                .map(this::toDomain);
+    }
+
+    @Override
     public List<Product> findAll() {
         return jpaRepository.findAll().stream()
                 .map(this::toDomain)

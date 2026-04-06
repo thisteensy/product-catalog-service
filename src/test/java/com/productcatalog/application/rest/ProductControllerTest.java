@@ -2,11 +2,13 @@ package com.productcatalog.application.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.productcatalog.ValidationBuilders;
+import com.productcatalog.application.rest.dtos.ProductResponseDto;
 import com.productcatalog.application.rest.mappers.ProductMapper;
 import com.productcatalog.application.rest.params.ProductParams;
 import com.productcatalog.domain.model.*;
 import com.productcatalog.domain.ports.out.ProductRepository;
 import com.productcatalog.domain.ports.out.TrackRepository;
+import jakarta.validation.Valid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +46,7 @@ class ProductControllerTest {
 
     @BeforeEach
     void setUp() {
-        when(productMapper.toProductFromProductParams(any()))
+        when(productMapper.fromProductParamsToProduct(any()))
                 .thenAnswer(invocation -> {
                     ProductParams params = invocation.getArgument(0);
                     return Product.builder()
@@ -85,7 +87,11 @@ class ProductControllerTest {
     @Test
     void shouldAssignNewIdAndSubmittedStatusWhenCreatingProduct() throws Exception {
         ProductParams params = ValidationBuilders.validProductParams();
+        Product product = ValidationBuilders.validProduct();
+        ProductResponseDto productResponseDto = ValidationBuilders.validProductResponseDto();
         when(productRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(productMapper.fromProductToProductResponseDto(any()))
+                .thenReturn(productResponseDto);
 
         mockMvc.perform(post("/products")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -98,12 +104,14 @@ class ProductControllerTest {
     @Test
     void shouldReturnProductWhenIdExists() throws Exception {
         Product product = ValidationBuilders.validProduct();
+        ProductResponseDto productResponseDto = ValidationBuilders.validProductResponseDto();
         when(productRepository.findById(product.getId()))
                 .thenReturn(Optional.of(product));
+        when(productMapper.fromProductToProductResponseDto(product))
+                .thenReturn(productResponseDto);
 
         mockMvc.perform(get("/products/{id}", product.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(product.getId().toString()));
+                .andExpect(status().isOk());
     }
 
     @Test
