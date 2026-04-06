@@ -1,14 +1,21 @@
 {
   "upc": "012345675004",
   "title": "Kind of Blue",
+  "artist": "Miles Davis",
+  "label": "Columbia Records",
   "releaseDate": "2027-06-01",
   "genre": "jazz",
   "language": "en",
   "artworkUri": "s3://artwork/kindofblue.jpg",
   "ownershipSplits": [
-    { "rightsHolder": "Miles Davis Estate", "percentage": 100.0 }
+    {
+      "rightsHolder": "Miles Davis Estate",
+      "percentage": 100.0
+    }
   ],
-  "dspTargets": ["spotify"],
+  "dspTargets": [
+    "spotify"
+  ],
   "tracks": [
     {
       "isrc": "USRC17600004",
@@ -18,10 +25,16 @@
       "duration": 562,
       "explicit": false,
       "contributors": [
-        { "name": "Miles Davis", "role": "FEATURED_ARTIST" }
+        {
+          "name": "Miles Davis",
+          "role": "FEATURED_ARTIST"
+        }
       ],
       "ownershipSplits": [
-        { "rightsHolder": "Miles Davis Estate", "percentage": 100.0 }
+        {
+          "rightsHolder": "Miles Davis Estate",
+          "percentage": 100.0
+        }
       ]
     }
   ]

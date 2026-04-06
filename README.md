@@ -171,7 +171,9 @@ http://localhost:8080/api-docs
 
 ## Testing with Samples
 
-Sample payloads for testing the pipeline are available in the [samples directory](samples/README.md).
+Sample payloads for testing the pipeline are available in the [samples directory](samples/README.md). The full validation pipeline can be exercised end to end via the Swagger UI once the stack is running. 
+
+Submit a product and watch it flow through validation using the debugging commands in [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Observability
 

@@ -1,14 +1,21 @@
 {
   "upc": "012345675002",
   "title": "Born to Run",
+  "artist": "Bruce Springsteen",
+  "label": "Columbia Records",
   "releaseDate": "2024-01-01",
   "genre": "rock",
   "language": "en",
   "artworkUri": "s3://artwork/borntorun.jpg",
   "ownershipSplits": [
-    { "rightsHolder": "Bruce Springsteen", "percentage": 100.0 }
+    {
+      "rightsHolder": "Bruce Springsteen",
+      "percentage": 100.0
+    }
   ],
-  "dspTargets": ["spotify"],
+  "dspTargets": [
+    "spotify"
+  ],
   "tracks": [
     {
       "isrc": "USRC17600002",
@@ -18,10 +25,16 @@
       "duration": 298,
       "explicit": false,
       "contributors": [
-        { "name": "Bruce Springsteen", "role": "MAIN_ARTIST" }
+        {
+          "name": "Bruce Springsteen",
+          "role": "MAIN_ARTIST"
+        }
       ],
       "ownershipSplits": [
-        { "rightsHolder": "Bruce Springsteen", "percentage": 100.0 }
+        {
+          "rightsHolder": "Bruce Springsteen",
+          "percentage": 100.0
+        }
       ]
     }
   ]

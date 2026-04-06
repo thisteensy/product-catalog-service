@@ -1,14 +1,21 @@
 {
   "upc": "012345675001",
   "title": "Rumours",
+  "artist": "Fleetwood Mac",
+  "label": "Warner Bros. Records",
   "releaseDate": "2027-06-01",
   "genre": "rock",
   "language": "en",
   "artworkUri": "s3://artwork/rumours.jpg",
   "ownershipSplits": [
-    { "rightsHolder": "Fleetwood Mac", "percentage": 100.0 }
+    {
+      "rightsHolder": "Fleetwood Mac",
+      "percentage": 100.0
+    }
   ],
-  "dspTargets": ["spotify"],
+  "dspTargets": [
+    "spotify"
+  ],
   "tracks": [
     {
       "isrc": "USRC17600001",
@@ -18,10 +25,16 @@
       "duration": 224,
       "explicit": false,
       "contributors": [
-        { "name": "Lindsey Buckingham", "role": "MAIN_ARTIST" }
+        {
+          "name": "Lindsey Buckingham",
+          "role": "MAIN_ARTIST"
+        }
       ],
       "ownershipSplits": [
-        { "rightsHolder": "Fleetwood Mac", "percentage": 100.0 }
+        {
+          "rightsHolder": "Fleetwood Mac",
+          "percentage": 100.0
+        }
       ]
     }
   ]

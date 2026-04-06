@@ -1,14 +1,21 @@
 {
   "upc": "012345675003",
   "title": "Nevermind",
+  "artist": "Nirvana",
+  "label": "DGC",
   "releaseDate": "2027-06-01",
   "genre": "rock",
   "language": "en",
   "artworkUri": "s3://artwork/nevermind.jpg",
   "ownershipSplits": [
-    { "rightsHolder": "Nirvana", "percentage": 100.0 }
+    {
+      "rightsHolder": "Nirvana",
+      "percentage": 100.0
+    }
   ],
-  "dspTargets": ["spotify"],
+  "dspTargets": [
+    "spotify"
+  ],
   "tracks": [
     {
       "isrc": "USRC17600003",
@@ -18,10 +25,16 @@
       "duration": 301,
       "explicit": false,
       "contributors": [
-        { "name": "Kurt Cobain", "role": "MAIN_ARTIST" }
+        {
+          "name": "Kurt Cobain",
+          "role": "MAIN_ARTIST"
+        }
       ],
       "ownershipSplits": [
-        { "rightsHolder": "Nirvana", "percentage": 100.0 }
+        {
+          "rightsHolder": "Nirvana",
+          "percentage": 100.0
+        }
       ]
     }
   ]
