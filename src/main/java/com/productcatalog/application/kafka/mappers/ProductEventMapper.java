@@ -63,7 +63,9 @@ public class ProductEventMapper {
     }
 
     public List<String> parseDspTargets(String dspTargetsJson) {
-        if (dspTargetsJson == null) return List.of();
+        if (dspTargetsJson == null) {
+            return List.of();
+        }
         try {
             return objectMapper.readValue(dspTargetsJson, new TypeReference<List<String>>() {}).stream()
                     .map(t -> t == null ? null : t.strip().toLowerCase(Locale.ROOT))

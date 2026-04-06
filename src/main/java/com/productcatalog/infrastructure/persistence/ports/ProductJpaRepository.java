@@ -1,6 +1,5 @@
 package com.productcatalog.infrastructure.persistence.ports;
 
-import com.productcatalog.domain.model.Product;
 import com.productcatalog.infrastructure.persistence.entities.ProductEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
