@@ -4,7 +4,7 @@ A take-home assignment for FUGA's Java Engineer position on the QC team. The bri
 
 ## What I built
 
-A Spring Boot service with two main responsibilities: a REST API supporting full CRUD operations on music products (parent object: album, EP, single) and tracks, and an event-driven validation pipeline that processes submissions asynchronously via Kafka.
+A Spring Boot service with two main responsibilities: a REST API supporting full CRUD operations including a catalog search endpoint, on music products (parent object: album, EP, single, etc.) and tracks, and an event-driven validation pipeline that processes submissions asynchronously via Kafka.
 
 Product-level validation and track validation run concurrently. After the product passes validation it waits in `AWAITING_TRACK_VALIDATION` until all its tracks pass, only then does it move to `VALIDATED` and become eligible for DSP delivery.
 
@@ -23,20 +23,20 @@ flowchart LR
  subgraph Core["Product Catalog Service"]
         PAPI["📦 Product API"]
         DB[("🗄️ MariaDB")]
-        ORCH["⚙️ Validation Orchestration Service"]
   end
  subgraph Stream["Event Stream"]
         DEB["🔍 Debezium CDC"]
         T1["📨 catalog.music_catalog.products"]
         T2["📨 catalog.music_catalog.tracks"]
-        DLQ["☠️ product-dlq"]
   end
  subgraph Validation["Validation Layer"]
         PCONSUMER["⚙️ Product Validation Consumer"]
         TCONSUMER["⚙️ Track Validation Consumer"]
+        STATUSCONSUMER["⚙️ Status Update Consumer"]
         RULES["📋 Rule Engine"]
-  end
- subgraph Streams["Kafka Streams Topology"]
+        ORCH["⚙️ Validation Orchestration Service"]
+        T3["📨 catalog.validation.status-updates"]
+        DLQ["☠️ product-dlq"]
         KTABLE["🗂️ Product Validation State KTable"]
   end
  subgraph Downstream["Downstream"]
@@ -44,36 +44,46 @@ flowchart LR
         DSP["🌍 DSP Delivery Stub"]
         REVIEWER["🔍 Reviewer Stub"]
   end
-    LABEL_UI, "CRUD" --> PAPI
-    PAPI, writes --> DB
-    DB, CDC --> DEB
+    LABEL_UI -- CRUD --> PAPI
+    PAPI -- writes --> DB
+    DB -- CDC --> DEB
     DEB == products ==> T1
     DEB == tracks ==> T2
-    T1, SUBMITTED, RESUBMITTED --> PCONSUMER
-    T2, PENDING --> TCONSUMER
+    T1 -- SUBMITTED, RESUBMITTED --> PCONSUMER
+    T2 -- PENDING --> TCONSUMER
     PCONSUMER --> RULES
     TCONSUMER --> RULES
     RULES --> ORCH
-    ORCH, status updates --> DB
+    ORCH == status updates ==> T3
+    T3 --> STATUSCONSUMER
+    STATUSCONSUMER -- writes --> DB
     PCONSUMER == fatal failure ==> DLQ
     TCONSUMER == fatal failure ==> DLQ
-    T1, all events --> KTABLE
-    T2, all events --> KTABLE
-    KTABLE, all tracks validated --> ORCH
-    T1, VALIDATED, VALIDATION_FAILED, PUBLISHED --> NOTIFY
-    T1, PUBLISHED, TAKEN_DOWN --> DSP
-    T1, NEEDS_REVIEW --> REVIEWER
+    T1 -- all events --> KTABLE
+    T2 -- all events --> KTABLE
+    KTABLE -- all tracks validated --> ORCH
+    T1 -- VALIDATED, VALIDATION_FAILED, PUBLISHED --> NOTIFY
+    T1 -- PUBLISHED, TAKEN_DOWN --> DSP
+    T1 -- NEEDS_REVIEW --> REVIEWER
 
+    DEB@{ shape: h-cyl}
+    T1@{ shape: h-cyl}
+    T2@{ shape: h-cyl}
+    T3@{ shape: h-cyl}
+    DLQ@{ shape: h-cyl}
+    KTABLE@{ shape: h-cyl}
      LABEL_UI:::external
      PAPI:::service
-     ORCH:::service
-     PCONSUMER:::service
-     TCONSUMER:::service
-     RULES:::service
      DB:::storage
      DEB:::infra
      T1:::topic
      T2:::topic
+     PCONSUMER:::service
+     TCONSUMER:::service
+     STATUSCONSUMER:::service
+     RULES:::service
+     ORCH:::service
+     T3:::topic
      DLQ:::topic
      KTABLE:::streams
      NOTIFY:::stub
@@ -90,7 +100,6 @@ flowchart LR
     style Core fill:#fff,stroke:#7a3db8,color:#fff
     style Stream fill:#fff,stroke:#7a3db8,color:#fff
     style Validation fill:#fff,stroke:#7a3db8,color:#fff
-    style Streams fill:#fff,stroke:#7a3db8,color:#fff
     style Downstream fill:#fff,stroke:#7a3db8,color:#fff
 ```
 
@@ -98,7 +107,7 @@ flowchart LR
 
 **Parse, don't validate**
 
-The mappers (`ProductEventMapper`, `TrackEventMapper`, `ProductMapper`) normalize and sanitize as they parse. Stripping whitespace, lowercasing language codes, uppercasing ISRCs, converting tinyint to boolean. By the time a `Product` or `Track` reaches the domain it's already in a valid, normalized form. This is informed by Alexis King's "Parse, Don't Validate" principle, the idea that parsing and validation should happen at the boundary so the domain only ever sees well-formed data. Java's type system can't enforce this at compile time the way Haskell or Rust can, but the mappers act as that boundary by convention.
+The mappers (`ProductEventMapper`, `TrackEventMapper`) normalize and sanitize as they parse. Stripping whitespace, lowercasing language codes, uppercasing ISRCs, converting tinyint to boolean. By the time a `Product` or `Track` reaches the domain it's already in a valid, normalized form. This is informed by Alexis King's "Parse, Don't Validate" principle, the idea that parsing and validation should happen at the boundary so the domain only ever sees well-formed data. Java's type system can't enforce this at compile time the way Haskell or Rust can, but the mappers act as that boundary by convention.
 
 **Debezium for change capture**
 
@@ -117,6 +126,10 @@ The domain only knows about `ValidationOutcome`, it never sees `RuleResult` or `
 The tricky part of this problem is knowing when all tracks for a product have finished validating. My first instinct was to query MariaDB on every track event, but that gets chatty at scale. Instead I built a Kafka Streams topology that merges the product and track event streams into a KTable keyed by product ID. The KTable holds the current validation state of each in-flight submission, and when it detects all tracks are validated it triggers the rollup. It's using a "collect-persist-evict" pattern.
 
 The Kafka Streams app lives in the same service as everything else. I wouldn't do that in production, it should be a separate stateful deployment with persistent RocksDB volumes, but for this submission it keeps things self-contained and I've called it out clearly.
+
+**Status update routing through Kafka**
+
+The orchestration service publishes to catalog.validation.status-updates rather than writing to MariaDB directly, decoupling validation decisions from persistence and making failures Kafka-native.
 
 ## Running locally
 
@@ -236,27 +249,35 @@ A DLQ monitor would also be a first priority, alerting via a Slack webhook whene
 
 ## What I'd do differently with more time
 
-**Catalog search and filtering** The current `GET /products` returns all products which is fine for a demo but not realistic for production. A label-facing API would need filtering by UPC, title, ISRC, status, and label. The label filter in particular is tied to authentication -- once labels authenticate via OAuth2, `GET /products` should implicitly scope results to the authenticated label's catalog without requiring them to pass a label ID explicitly.
+### Structure
 
 **Extract the validation pipeline into its own service.** The product API and the validation pipeline have different operational requirements and should be separate services. The API is stateless and scales horizontally without ceremony. The validation pipeline (consumers, rule engine, and Kafka Streams application) is stateful, event-driven, and needs different scaling characteristics, particularly around the RocksDB state store. Keeping them together made sense for the submission but in production they would be separate deployments.
 
-**Add Reviewer Controller** For the validation flow I would assume there would be a manual review flow. It is stubbed in this project.
-
-**Track status history** Track transitions are not recorded; would follow the same pattern as product status history with a `track_status_history` table
-
 **Topics as infrastructure** I would not allow the creation of topics and schemas to happen on the fly. I would use an IaC tool like Terraform, Ansible or GitOps to create them for resilience, consistency and to prevent accidental resource sprawl.
 
-**Kubernetes deployment** The validation pipeline has two distinct operational profiles that would drive the Kubernetes deployment strategy. The product API is stateless and scales horizontally with a standard `Deployment`. The Kafka Streams topology is stateful, it maintains a RocksDB state store that needs to survive pod restarts. That means a `StatefulSet` with a persistent volume claim per replica, careful partition assignment so each replica owns a consistent subset of partitions, and a readiness probe backed by the custom `KafkaStreamsHealthIndicator` so traffic only routes to pods whose topology is in `RUNNING` state. The Debezium connector registration, currently handled by `init.sh`, would move to a Kubernetes `Job` that runs after Kafka Connect is healthy, using an init container or a readiness gate to sequence the startup correctly.
+### Features/Completeness
 
-**Add a clean intermediate topic between Debezium and the consumers.** Right now the consumers parse the Debezium envelope directly. If we ever change CDC tooling, the consumers break. A thin translator producing to a stable domain event topic would decouple the two concerns properly.
+**Add Reviewer Controller** For the validation flow I would assume there would be a manual review flow. It is stubbed in this project.
 
-**Authentication and authorization** Currently any caller can submit, update, or delete any product. In production, the API would sit behind an identity provider like Okta. Labels would authenticate via OAuth2 and their token would scope them to their own catalog, a label can only read and modify their own products. The `changed_by_id` field on status history is already nullable and waiting for this, once authentication is in place, the authenticated label account ID would populate that field on every resubmission, giving a full audit trail of who changed what and when.
-
-**Kafka Streams Interactive Queries** The KTable state store can be queried directly via Kafka Streams Interactive Queries API, exposing the materialized validation state for any in-flight submission by product ID without hitting MariaDB. This would be a useful debugging endpoint in production, seeing exactly what the topology has materialized for a given product, including the per-track status map, is valuable when investigating why a rollup didn't fire as expected. 
+**Kafka Streams Interactive Queries** The KTable state store can be queried directly via Kafka Streams Interactive Queries API, exposing the materialized validation state for any in-flight submission by product ID without hitting MariaDB. This would be a useful debugging endpoint in production, seeing exactly what the topology has materialized for a given product, including the per-track status map, is valuable when investigating why a rollup didn't fire as expected.
 The same API could back a real-time state visualization, a live view of in-flight submissions showing which tracks have passed, which are still pending, and where each product is in the validation lifecycle. Useful for a QC team dashboard without any additional database queries.
+
+**Track status history** Track transitions are not recorded; would follow the same pattern as product status history with a `track_status_history` table.
 
 **Expand DSP rule coverage.** The Spotify rules are a proof of concept. A real implementation would have rules per DSP with proper configuration, and the rule sets would likely be data-driven rather than hardcoded.
 
+**Authentication and authorization** Currently any caller can submit, update, or delete any product. In production, the API would sit behind an identity provider like Okta. Labels would authenticate via OAuth2 and their token would scope them to their own catalog, a label can only read and modify their own products. The `changed_by_id` field on status history is already nullable and waiting for this, once authentication is in place, the authenticated label account ID would populate that field on every resubmission, giving a full audit trail of who changed what and when.
+
+### Safety Checks
+
+**Add a clean intermediate topic between Debezium and the consumers.** Right now the consumers parse the Debezium envelope directly. If we ever change CDC tooling, the consumers break. A thin translator producing to a stable domain event topic would decouple the two concerns properly.
+
+**Control status transitions** I might apply a check on status transitions so that they could not accidentally flow in an illogical direction without review.
+
+### CI/CD
+
+**Kubernetes deployment** The validation pipeline has two distinct operational profiles that would drive the Kubernetes deployment strategy. The product API is stateless and scales horizontally with a standard `Deployment`. The Kafka Streams topology is stateful, it maintains a RocksDB state store that needs to survive pod restarts. That means a `StatefulSet` with a persistent volume claim per replica, careful partition assignment so each replica owns a consistent subset of partitions, and a readiness probe backed by the custom `KafkaStreamsHealthIndicator` so traffic only routes to pods whose topology is in `RUNNING` state. The Debezium connector registration, currently handled by `init.sh`, would move to a Kubernetes `Job` that runs after Kafka Connect is healthy, using an init container or a readiness gate to sequence the startup correctly.
+
 **Security scanning and pre-commit hooks** In production I'd add Snyk or Dependabot to scan dependencies for known vulnerabilities, integrated into the GitHub Actions pipeline so a failing scan blocks the deployment. Pre-commit hooks via Husky or a simple shell script would catch obvious issues before they hit CI, at minimum a checkstyle run and a quick `./mvnw test` on changed modules. The goal is to catch things as early as possible rather than waiting for the deployment pipeline to fail.
 
-**Reliability and Fault Tolerance and Performance** A production system would never have only one deployment. There would be more than one environment, usually three. Everything in each environment would be replicated. There would be multiple nodes of the applications, multiple replicas of the topics. There would be a replica or some way to recover the database. There would be a load balancer in front of the servers.
+**Reliability, Fault Tolerance and Performance** A production system would never have only one deployment. There would be more than one environment, usually three. Everything in each environment would be replicated. There would be multiple nodes of the applications, multiple replicas of the topics. There would be a replica or some way to recover the database. There would be a load balancer in front of the servers.
