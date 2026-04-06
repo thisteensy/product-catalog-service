@@ -43,9 +43,7 @@ public class TrackRepositoryImpl implements TrackRepository {
                              ChangedByType changedByType, String changedById) {
         TrackEntity entity = jpaRepository.findById(id.toString())
                 .orElseThrow(() -> new IllegalStateException("Track not found: " + id));
-        Track track = toDomain(entity);
-        track.transitionTo(status);
-        entity.setStatus(track.getStatus().name());
+        entity.setStatus(status.name());
         jpaRepository.save(entity);
     }
 
