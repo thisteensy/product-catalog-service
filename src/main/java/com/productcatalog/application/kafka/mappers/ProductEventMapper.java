@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.productcatalog.application.kafka.dtos.ProductEventDto;
 import com.productcatalog.domain.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -15,6 +17,8 @@ import java.util.UUID;
 public class ProductEventMapper {
 
     private final ObjectMapper objectMapper;
+
+    private static final Logger log = LoggerFactory.getLogger(ProductEventMapper.class);
 
     public ProductEventMapper(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
@@ -55,6 +59,17 @@ public class ProductEventMapper {
                     .build();
         } catch (Exception e) {
             throw new RuntimeException("Failed to map product event: " + row.getId(), e);
+        }
+    }
+
+    public List<String> parseDspTargets(String dspTargetsJson) {
+        if (dspTargetsJson == null) return List.of();
+        try {
+            return objectMapper.readValue(dspTargetsJson, new TypeReference<List<String>>() {}).stream()
+                    .map(t -> t == null ? null : t.strip().toLowerCase(Locale.ROOT))
+                    .toList();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse DSP targets", e);
         }
     }
 }

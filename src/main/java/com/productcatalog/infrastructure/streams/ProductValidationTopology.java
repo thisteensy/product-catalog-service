@@ -68,8 +68,9 @@ public class ProductValidationTopology {
                                 ValidationEvent.Type.PRODUCT,
                                 row.getId(),
                                 null,
-                                row.getStatus()
-                        ));
+                                row.getStatus(),
+                                productEventMapper.parseDspTargets(row.getDspTargets()
+                                )));
                     } catch (Exception e) {
                         log.warn("Skipping unparseable product event: {}", e.getMessage());
                         return List.of();
@@ -95,7 +96,8 @@ public class ProductValidationTopology {
                                 ValidationEvent.Type.TRACK,
                                 row.getProductId(),
                                 row.getId(),
-                                row.getStatus()
+                                row.getStatus(),
+                                List.of()
                         ));
                     } catch (Exception e) {
                         log.warn("Skipping unparseable track event: {}", e.getMessage());
@@ -113,6 +115,9 @@ public class ProductValidationTopology {
                         (productId, event, state) -> {
                             if (event.getType() == ValidationEvent.Type.PRODUCT) {
                                 state.setProductStatus(event.getStatus());
+                                if (event.getDspTargets() != null && !event.getDspTargets().isEmpty()) {
+                                    state.setDspTargets(event.getDspTargets());
+                                }
                             } else {
                                 state.getTrackStatuses().put(event.getTrackId(), event.getStatus());
                             }

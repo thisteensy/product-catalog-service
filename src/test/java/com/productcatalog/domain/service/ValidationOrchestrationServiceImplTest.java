@@ -1,7 +1,9 @@
 package com.productcatalog.domain.service;
 
 import com.productcatalog.domain.model.*;
+import com.productcatalog.domain.ports.out.RuleEngine;
 import com.productcatalog.domain.ports.out.StatusUpdatePublisher;
+import com.productcatalog.domain.ports.out.ValidationStateStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,11 +22,17 @@ class ValidationOrchestrationServiceImplTest {
     @Mock
     private StatusUpdatePublisher statusUpdatePublisher;
 
+    @Mock
+    private RuleEngine ruleEngine;
+
+    @Mock
+    private ValidationStateStore validationStateStore;
+
     private ValidationOrchestrationServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new ValidationOrchestrationServiceImpl(statusUpdatePublisher);
+        service = new ValidationOrchestrationServiceImpl(ruleEngine, statusUpdatePublisher, validationStateStore);
     }
 
     @Test

@@ -201,7 +201,7 @@ A DLQ monitor would also be a first priority, alerting via a Slack webhook whene
 
 **Extract the validation pipeline into its own service.** The product API and the validation pipeline have different operational requirements and should be separate services. The API is stateless and scales horizontally without ceremony. The validation pipeline (consumers, rule engine, and Kafka Streams application) is stateful, event-driven, and needs different scaling characteristics, particularly around the RocksDB state store. Keeping them together made sense for the submission but in production they would be separate deployments.
 
-**Topics as infrastructure** I would not allow the creation of topics and schemas to happen on the fly. I would use an IaC tool like Terraform, Ansible or GitOps to create them for resilience, consistency and to prevent accidental resource sprawl.
+**Topics as infrastructure** I would not allow the creation of topics and schemas to happen on the fly. I would use an IaC tool such as Terraform or Ansible to create them for resilience, consistency and to prevent accidental resource sprawl.
 
 ### Features/Completeness
 
@@ -218,6 +218,8 @@ The same API could back a real-time state visualization, a live view of in-fligh
 
 **End-to-end integration tests** a test that submits a product via the REST API and asserts the final validation status in the database, covering the full pipeline including Debezium CDC, validation consumers, and status update routing.
 
+**Clearer error handling at the API** Right now the GlobalExceptionHandler is mostly returning 500s, which is fine for the user, but 
+
 ### Safety Checks
 
 **Add a clean intermediate topic between Debezium and the consumers.** Right now the consumers parse the Debezium envelope directly. If we ever change CDC tooling, the consumers break. A thin translator producing to a stable domain event topic would decouple the two concerns properly.
@@ -225,6 +227,10 @@ The same API could back a real-time state visualization, a live view of in-fligh
 **Control status transitions** I might apply a check on status transitions so that they could not accidentally flow in an illogical direction without review.
 
 **Contract testing** would be used to ensure that the API delivers what the UI expects.
+
+### Refactoring
+
+**Store DSP Targets in ProductValidationState** The current behavior is that for every track event it calls the database for the complete product. This is obviously inefficient. The DSP targets should be loaded once 
 
 ### CI/CD
 

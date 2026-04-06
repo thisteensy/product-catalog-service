@@ -21,14 +21,11 @@ public class ProductEventConsumer {
     private static final Logger log = LoggerFactory.getLogger(ProductEventConsumer.class);
 
     private final ProductEventMapper mapper;
-    private final RuleEngine ruleEngine;
     private final ValidationOrchestrationService orchestrationService;
 
     public ProductEventConsumer(ProductEventMapper mapper,
-                                RuleEngine ruleEngine,
                                 ValidationOrchestrationService orchestrationService) {
         this.mapper = mapper;
-        this.ruleEngine = ruleEngine;
         this.orchestrationService = orchestrationService;
     }
 
@@ -56,7 +53,6 @@ public class ProductEventConsumer {
         }
 
         Product product = mapper.toProductFromProductRow(event.getPayload().getAfter());
-        ValidationOutcome outcome = ruleEngine.evaluateProduct(product);
-        orchestrationService.onProductEvaluated(product.getId(), outcome);
+        orchestrationService.submitProduct(product);
     }
 }

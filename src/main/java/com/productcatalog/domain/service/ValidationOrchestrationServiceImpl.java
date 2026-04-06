@@ -1,12 +1,15 @@
 package com.productcatalog.domain.service;
 
 import com.productcatalog.domain.model.*;
+import com.productcatalog.domain.ports.out.RuleEngine;
 import com.productcatalog.domain.ports.out.StatusUpdatePublisher;
 import com.productcatalog.domain.ports.in.ValidationOrchestrationService;
+import com.productcatalog.domain.ports.out.ValidationStateStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -14,10 +17,27 @@ public class ValidationOrchestrationServiceImpl implements ValidationOrchestrati
 
     private static final Logger log = LoggerFactory.getLogger(ValidationOrchestrationServiceImpl.class);
 
+    private final RuleEngine ruleEngine;
     private final StatusUpdatePublisher statusUpdatePublisher;
+    private final ValidationStateStore validationStateStore;
 
-    public ValidationOrchestrationServiceImpl(StatusUpdatePublisher statusUpdatePublisher) {
+    public ValidationOrchestrationServiceImpl(RuleEngine ruleEngine, StatusUpdatePublisher statusUpdatePublisher, ValidationStateStore validationStateStore) {
+        this.ruleEngine = ruleEngine;
         this.statusUpdatePublisher = statusUpdatePublisher;
+        this.validationStateStore = validationStateStore;
+    }
+
+    @Override
+    public void submitProduct(Product product) {
+        ValidationOutcome outcome = ruleEngine.evaluateProduct(product);
+        onProductEvaluated(product.getId(), outcome);
+    }
+
+    @Override
+    public void submitTrack(Track track, UUID productId) {
+        List<String> dspTargets = validationStateStore.getDspTargets(productId);
+        ValidationOutcome outcome = ruleEngine.evaluateTrack(track, dspTargets);
+        onTrackEvaluated(track.getId(), productId, outcome);
     }
 
     @Override

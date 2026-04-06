@@ -26,16 +26,13 @@ public class TrackValidationConsumer {
 
     private final TrackEventMapper trackEventMapper;
     private final ProductRepository productRepository;
-    private final RuleEngine ruleEngine;
     private final ValidationOrchestrationService orchestrationService;
 
     public TrackValidationConsumer(TrackEventMapper trackEventMapper,
                                    ProductRepository productRepository,
-                                   RuleEngine ruleEngine,
                                    ValidationOrchestrationService orchestrationService) {
         this.trackEventMapper = trackEventMapper;
         this.productRepository = productRepository;
-        this.ruleEngine = ruleEngine;
         this.orchestrationService = orchestrationService;
     }
 
@@ -61,15 +58,8 @@ public class TrackValidationConsumer {
             return;
         }
 
-        UUID trackId = UUID.fromString(event.getPayload().getAfter().getId());
         UUID productId = UUID.fromString(event.getPayload().getAfter().getProductId());
-
-        List<String> dspTargets = productRepository.findById(productId)
-                .map(p -> p.getDspTargets())
-                .orElse(List.of());
-
         Track track = trackEventMapper.toTrackFromTrackRow(event.getPayload().getAfter());
-        ValidationOutcome outcome = ruleEngine.evaluateTrack(track, dspTargets);
-        orchestrationService.onTrackEvaluated(trackId, productId, outcome);
+        orchestrationService.submitTrack(track, productId);
     }
 }

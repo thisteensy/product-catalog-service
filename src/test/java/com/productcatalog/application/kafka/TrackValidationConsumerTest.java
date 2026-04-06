@@ -28,9 +28,6 @@ class TrackValidationConsumerTest {
     private ProductRepository productRepository;
 
     @Mock
-    private RuleEngine ruleEngine;
-
-    @Mock
     private ValidationOrchestrationService orchestrationService;
 
     private TrackValidationConsumer consumer;
@@ -40,7 +37,6 @@ class TrackValidationConsumerTest {
         consumer = new TrackValidationConsumer(
                 new TrackEventMapper(new ObjectMapper()),
                 productRepository,
-                ruleEngine,
                 orchestrationService);
     }
 
@@ -56,38 +52,31 @@ class TrackValidationConsumerTest {
 
     @Test
     void shouldCallOrchestrationServiceWhenStatusIsPendingAndOpIsCreate() throws Exception {
-        when(productRepository.findById(any())).thenReturn(Optional.of(validProduct()));
-        when(ruleEngine.evaluateTrack(any(), any())).thenReturn(ValidationOutcome.PASSED);
-
         consumer.consume(trackEvent("PENDING", "c"), "catalog.music_catalog.tracks");
 
-        verify(orchestrationService).onTrackEvaluated(
-                any(UUID.class), any(UUID.class), any(ValidationOutcome.class));
+        verify(orchestrationService).submitTrack(any(), any(UUID.class));
     }
 
     @Test
     void shouldCallOrchestrationServiceWhenStatusIsPendingAndOpIsUpdate() throws Exception {
-        when(productRepository.findById(any())).thenReturn(Optional.of(validProduct()));
-        when(ruleEngine.evaluateTrack(any(), any())).thenReturn(ValidationOutcome.PASSED);
-
         consumer.consume(trackEvent("PENDING", "u"), "catalog.music_catalog.tracks");
 
-        verify(orchestrationService).onTrackEvaluated(
-                any(UUID.class), any(UUID.class), any(ValidationOutcome.class));
+        verify(orchestrationService).submitTrack(any(), any(UUID.class));
+
     }
 
     @Test
     void shouldSkipEventWhenOpIsDelete() throws Exception {
         consumer.consume(trackEvent("PENDING", "d"), "catalog.music_catalog.tracks");
 
-        verify(orchestrationService, never()).onTrackEvaluated(any(), any(), any());
+        verify(orchestrationService, never()).submitTrack(any(), any());
     }
 
     @Test
     void shouldSkipEventWhenStatusIsNotPending() throws Exception {
         consumer.consume(trackEvent("VALIDATED", "u"), "catalog.music_catalog.tracks");
 
-        verify(orchestrationService, never()).onTrackEvaluated(any(), any(), any());
+        verify(orchestrationService, never()).submitTrack(any(), any());
     }
 
     @Test
@@ -98,7 +87,7 @@ class TrackValidationConsumerTest {
 
         consumer.consume(message, "catalog.music_catalog.tracks");
 
-        verify(orchestrationService, never()).onTrackEvaluated(any(), any(), any());
+        verify(orchestrationService, never()).submitTrack(any(), any());
     }
 
     @Test
@@ -109,17 +98,13 @@ class TrackValidationConsumerTest {
 
         consumer.consume(message, "catalog.music_catalog.tracks");
 
-        verify(orchestrationService, never()).onTrackEvaluated(any(), any(), any());
+        verify(orchestrationService, never()).submitTrack(any(), any());
     }
 
     @Test
     void shouldUseFallbackDspTargetsWhenProductNotFound() throws Exception {
-        when(productRepository.findById(any())).thenReturn(Optional.empty());
-        when(ruleEngine.evaluateTrack(any(), any())).thenReturn(ValidationOutcome.PASSED);
-
         consumer.consume(trackEvent("PENDING", "c"), "catalog.music_catalog.tracks");
 
-        verify(ruleEngine).evaluateTrack(any(), any());
-        verify(orchestrationService).onTrackEvaluated(any(), any(), any());
+        verify(orchestrationService).submitTrack(any(), any());
     }
 }

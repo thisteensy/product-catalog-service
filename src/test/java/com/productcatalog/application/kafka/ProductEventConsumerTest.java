@@ -21,9 +21,6 @@ import static org.mockito.Mockito.when;
 class ProductEventConsumerTest {
 
     @Mock
-    private RuleEngine ruleEngine;
-
-    @Mock
     private ValidationOrchestrationService orchestrationService;
 
     private ProductEventConsumer consumer;
@@ -32,7 +29,6 @@ class ProductEventConsumerTest {
     void setUp() {
         consumer = new ProductEventConsumer(
                 new ProductEventMapper(new com.fasterxml.jackson.databind.ObjectMapper()),
-                ruleEngine,
                 orchestrationService);
     }
 
@@ -45,58 +41,42 @@ class ProductEventConsumerTest {
     }
 
     @Test
-    void shouldCallOrchestrationServiceWhenStatusIsSubmittedAndOpIsCreate() throws Exception {
-        when(ruleEngine.evaluateProduct(any())).thenReturn(ValidationOutcome.PASSED);
-
+    void shouldCallSubmitProductWhenStatusIsSubmitted() throws Exception {
         consumer.consume(productEvent("SUBMITTED", "c"), "catalog.music_catalog.products");
-
-        verify(orchestrationService).onProductEvaluated(
-                any(UUID.class), any(ValidationOutcome.class));
+        verify(orchestrationService).submitProduct(any());
     }
 
     @Test
-    void shouldCallOrchestrationServiceWhenStatusIsResubmitted() throws Exception {
-        when(ruleEngine.evaluateProduct(any())).thenReturn(ValidationOutcome.PASSED);
-
+    void shouldCallSubmitProductWhenStatusIsResubmitted() throws Exception {
         consumer.consume(productEvent("RESUBMITTED", "u"), "catalog.music_catalog.products");
-
-        verify(orchestrationService).onProductEvaluated(
-                any(UUID.class), any(ValidationOutcome.class));
+        verify(orchestrationService).submitProduct(any());
     }
 
     @Test
     void shouldSkipEventWhenOpIsDelete() throws Exception {
         consumer.consume(productEvent("SUBMITTED", "d"), "catalog.music_catalog.products");
-
-        verify(orchestrationService, never()).onProductEvaluated(any(), any());
+        verify(orchestrationService, never()).submitProduct(any());
     }
 
     @Test
     void shouldSkipEventWhenStatusIsNotSubmittedOrResubmitted() throws Exception {
         consumer.consume(productEvent("AWAITING_TRACK_VALIDATION", "u"), "catalog.music_catalog.products");
-
-        verify(orchestrationService, never()).onProductEvaluated(any(), any());
+        verify(orchestrationService, never()).submitProduct(any());
     }
 
     @Test
     void shouldSkipEventWhenPayloadAfterIsNull() throws Exception {
-        String message = """
+        consumer.consume("""
                 {"payload":{"op":"c","after":null}}
-                """;
-
-        consumer.consume(message, "catalog.music_catalog.products");
-
-        verify(orchestrationService, never()).onProductEvaluated(any(), any());
+                """, "catalog.music_catalog.products");
+        verify(orchestrationService, never()).submitProduct(any());
     }
 
     @Test
     void shouldSkipEventWhenPayloadIsNull() throws Exception {
-        String message = """
+        consumer.consume("""
                 {"payload":null}
-                """;
-
-        consumer.consume(message, "catalog.music_catalog.products");
-
-        verify(orchestrationService, never()).onProductEvaluated(any(), any());
+                """, "catalog.music_catalog.products");
+        verify(orchestrationService, never()).submitProduct(any());
     }
 }
