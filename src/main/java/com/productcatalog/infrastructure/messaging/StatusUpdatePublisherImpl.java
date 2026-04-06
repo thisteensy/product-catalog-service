@@ -27,7 +27,7 @@ public class StatusUpdatePublisherImpl implements StatusUpdatePublisher {
     public void publish(StatusUpdateEvent event) {
         try {
             String payload = objectMapper.writeValueAsString(event);
-            kafkaTemplate.send(TOPIC, event.getEntityId(), payload);
+            kafkaTemplate.send(TOPIC, event.getEntityId(), payload).get();
             log.debug("Published status update for {} {}", event.getEntityType(), event.getEntityId());
         } catch (Exception e) {
             throw new RuntimeException("Failed to publish status update for " + event.getEntityId(), e);
