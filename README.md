@@ -8,6 +8,8 @@ A Spring Boot service with two main responsibilities: a REST API supporting full
 
 Product-level validation and track validation run concurrently. After the product passes validation it waits in `AWAITING_TRACK_VALIDATION` until all its tracks pass, only then does it move to `VALIDATED` and become eligible for DSP delivery.
 
+When validation fails, the specific rule violations are recorded in the product and track status history so the label can see exactly what needs to be corrected.
+
 ## Architecture
 See GitHub for diagram.
 ```mermaid
@@ -126,7 +128,7 @@ Early on the consumers were doing too much, rule evaluation, status decisions, r
 
 **Rule engine behind a port**
 
-The domain only knows about `ValidationOutcome`, it never sees `RuleResult` or `RuleSeverity`. I defined a `RuleEngine` port so the consumers depend on an interface, not on the infrastructure classes directly. The rule implementations can change without touching the domain.
+The domain only knows about `ValidationResult` and `ValidationOutcome`, it never sees `RuleResult` or `RuleSeverity`. I defined a `RuleEngine` port so the consumers depend on an interface, not on the infrastructure classes directly. The rule implementations can change without touching the domain.
 
 **Kafka Streams KTable for submission state**
 
@@ -138,9 +140,11 @@ Instead I built a Kafka Streams topology that merges the product and track event
 
 The orchestration service publishes to `catalog.validation.status-updates` rather than writing to MariaDB directly, decoupling validation decisions from persistence and making failures Kafka-native.
 
-**Keeping the streams topology dumb**
+**Keeping logic out of infrastructure layer**
 
-The Kafka Streams topology went through a refactor during development. The first version had the topology deciding when a product was fully validated. It was checking conditions and calling into the domain directly, which is backwards. I moved the completion logic into `ValidationOrchestrationService` behind a new port. Now the topology just aggregates state and passes it inward, and the domain decides what to do with it. If Kafka Streams were swapped out for something else, the validation logic wouldn't need to change.
+The Kafka Streams topology and the rule engine both went through refactors during development. Both had domain logic in the wrong place. The topology was deciding when a product was fully validated; the rule engine was hiding DSP orchestration inside universal rules. I moved the completion predicate into `ValidationOrchestrationService` behind a new port, and pulled DSP rule evaluation up into `RuleEngineImpl` where the full picture is visible in one place. The topology now just aggregates state and passes it inward. The rule engine assembles all results and resolves them. The domain decides what everything means. 
+
+One exception: the resolution logic that determines overall outcome from a list of rule results lives in infrastructure. Since `RuleResult` never crosses the boundary, the impact is contained.
 
 ## Running locally
 
@@ -220,17 +224,15 @@ The same API could back a real-time state visualization, a live view of in-fligh
 
 **Track status history** Track transitions are not recorded; would follow the same pattern as product status history with a `track_status_history` table.
 
-**Expand DSP rule coverage.** The Spotify rules are a proof of concept. A real implementation would have rules per DSP with proper configuration, and the rule sets would likely be data-driven rather than hardcoded.
+**Expand DSP rule coverage.** The Spotify rules are a proof of concept. A real implementation would have rules per DSP with proper configuration, and the rule sets would likely be data-driven rather than hardcoded. if rules ever made external calls, such as checking against a rights registry or a content moderation API, parallelizing across DSPs would meaningfully reduce latency.
 
 **Authentication and authorization** Currently any caller can submit, update, or delete any product. In production, the API would sit behind an identity provider like Okta. Labels would authenticate via OAuth2 and their token would scope them to their own catalog, a label can only read and modify their own products. The `changed_by_id` field on status history is already nullable and waiting for this, once authentication is in place, the authenticated label account ID would populate that field on every resubmission, giving a full audit trail of who changed what and when.
 
 **End-to-end integration tests** A test that submits a product via the REST API and asserts the final validation status in the database, covering the full pipeline including Debezium CDC, validation consumers, and status update routing.
 
-**Clearer error handling at the API** The `GlobalExceptionHandler` returns correct HTTP status codes but error messages could be more informative. Validation failures in particular could surface which fields failed and why, rather than a generic message.
+**Expose validation failures at the API** Rule violations are recorded in status history but not yet surfaced on `GET /products/{id}`. Adding a violations field to the product response when status is VALIDATION_FAILED would let labels see what needs fixing without querying the history endpoint separately.
 
 **Expose status history via API** `GET /products/{id}/history` would return the full audit trail of status transitions for a product, including actor type, identity, timestamp, and notes. The `product_status_history` table already captures this data, it just isn't exposed yet.
-
-**Move RuleResult into domain** It is strictly speaking making a decision that belongs 
 
 ### Safety Checks
 
