@@ -138,6 +138,10 @@ The Kafka Streams app lives in the same service as everything else. I wouldn't d
 
 The orchestration service publishes to `catalog.validation.status-updates` rather than writing to MariaDB directly, decoupling validation decisions from persistence and making failures Kafka-native.
 
+**Keeping the streams topology dumb**
+
+The Kafka Streams topology went through a refactor during development. The first version had the topology deciding when a product was fully validated. It was checking conditions and calling into the domain directly, which is backwards. I moved the completion logic into `ValidationOrchestrationService` behind a new port. Now the topology just aggregates state and passes it inward, and the domain decides what to do with it. If Kafka Streams were swapped out for something else, the validation logic wouldn't need to change.
+
 ## Running locally
 
 Requires Docker and Java 21.
@@ -191,7 +195,7 @@ The service includes Micrometer Tracing via the Actuator dependency, but no trac
 
 In production a mature system would include integration with an observability platform like Datadog or Grafana Stack (Prometheus, Loki, Tempo) to surface metrics, logs, and traces in one place.
 
-Custom Micrometer counters for business outcomes -- products validated, failed, and flagged for review -- exposed via the Actuator metrics endpoint and scraped by Prometheus. These are domain events that infrastructure metrics can't see, and they're the numbers a QC team would actually care about day to day.
+Custom Micrometer counters for business outcomes (products validated, failed, and flagged for review) exposed via the Actuator metrics endpoint and scraped by Prometheus. These are domain events that infrastructure metrics can't see, and they're the numbers a QC team would actually care about day to day.
 
 A DLQ monitor would also be a first priority, alerting via a Slack webhook whenever a message lands in `product-dlq` so the team can inspect and replay failed messages promptly.
 
@@ -201,7 +205,9 @@ A DLQ monitor would also be a first priority, alerting via a Slack webhook whene
 
 **Extract the validation pipeline into its own service.** The product API and the validation pipeline have different operational requirements and should be separate services. The API is stateless and scales horizontally without ceremony. The validation pipeline (consumers, rule engine, and Kafka Streams application) is stateful, event-driven, and needs different scaling characteristics, particularly around the RocksDB state store. Keeping them together made sense for the submission but in production they would be separate deployments.
 
-**Topics as infrastructure** I would not allow the creation of topics and schemas to happen on the fly. I would use an IaC tool such as Terraform or Ansible to create them for resilience, consistency and to prevent accidental resource sprawl.
+**Schema governance** In production, topic schemas would be managed via a Schema Registry (Confluent or AWS Glue) with Avro or Protobuf serialization. This enforces compatibility contracts between producers and consumers and prevents breaking changes from silently corrupting the pipeline.
+
+**Topics, Schemas, Connectors and the Connect Cluster as infrastructure** I would not allow the creation of topics and schemas to happen on the fly. I would treat them as infrastructure. I would use an IaC tool such as Terraform or Ansible to create all infrastructure for resilience, consistency and to prevent accidental resource sprawl.
 
 ### Features/Completeness
 
@@ -216,17 +222,19 @@ The same API could back a real-time state visualization, a live view of in-fligh
 
 **Authentication and authorization** Currently any caller can submit, update, or delete any product. In production, the API would sit behind an identity provider like Okta. Labels would authenticate via OAuth2 and their token would scope them to their own catalog, a label can only read and modify their own products. The `changed_by_id` field on status history is already nullable and waiting for this, once authentication is in place, the authenticated label account ID would populate that field on every resubmission, giving a full audit trail of who changed what and when.
 
-**End-to-end integration tests** a test that submits a product via the REST API and asserts the final validation status in the database, covering the full pipeline including Debezium CDC, validation consumers, and status update routing.
+**End-to-end integration tests** A test that submits a product via the REST API and asserts the final validation status in the database, covering the full pipeline including Debezium CDC, validation consumers, and status update routing.
 
-**Clearer error handling at the API** Right now the GlobalExceptionHandler is mostly returning 500s, which is fine for the user, but 
+**Clearer error handling at the API** The `GlobalExceptionHandler` returns correct HTTP status codes but error messages could be more informative. Validation failures in particular could surface which fields failed and why, rather than a generic message.
+
+**Expose status history via API** `GET /products/{id}/history` would return the full audit trail of status transitions for a product, including actor type, identity, timestamp, and notes. The `product_status_history` table already captures this data, it just isn't exposed yet.
 
 ### Safety Checks
 
 **Add a clean intermediate topic between Debezium and the consumers.** Right now the consumers parse the Debezium envelope directly. If we ever change CDC tooling, the consumers break. A thin translator producing to a stable domain event topic would decouple the two concerns properly.
 
-**Control status transitions** I might apply a check on status transitions so that they could not accidentally flow in an illogical direction without review.
+**Contract testing** I would use something like Pact to ensure that the API delivers what the UI expects.
 
-**Contract testing** would be used to ensure that the API delivers what the UI expects.
+**Repository integration test coverage** The repository layer has minimal test coverage. Integration tests using Testcontainers against a real MariaDB instance would cover the delete cascade order, transactional boundaries, and `orElseThrow` error paths that unit tests can't reach.
 
 ### CI/CD
 
