@@ -122,6 +122,12 @@ The mappers (`ProductEventMapper`, `TrackEventMapper`) normalize and sanitize as
 
 Rather than publishing events explicitly from the application, I used Debezium to capture changes from MariaDB's binary log. This means the database is the source of truth and events flow from it naturally, there's no risk of a write succeeding while the event publish fails. Status updates from the validation pipeline follow the same principle, routed through Kafka rather than written directly to the database.
 
+**Caching**
+
+Read load on the catalog API doesn't justify a cache at reasonable submission volumes. A well-indexed MariaDB query is sufficient. If label-facing status polling ever created measurable DB read pressure, Redis with write-through invalidation driven by Debezium events would be the first reach. The cache invalidates when the CDC event fires, not when the application writes, which keeps it consistent with the event flow.
+
+A more immediate candidate would be DSP rule sets. Currently they are hardcoded, but a data-driven rule registry stored in the database would be read on every validation event. Rule sets change infrequently but are read constantly, which would be a natural fit for a cache with invalidation triggered by a configuration change event.
+
 **Keeping business logic out of the consumers**
 
 Early on the consumers were doing too much, rule evaluation, status decisions, rollup logic. I pulled all of that into `ValidationOrchestrationService` so the consumers just deserialize, filter, and delegate. The severity-to-status mapping was duplicated across both consumers before the refactor. Having it in one place means it's testable without Kafka and impossible to accidentally get out of sync.
@@ -224,13 +230,13 @@ The same API could back a real-time state visualization, a live view of in-fligh
 
 **Track status history** Track transitions are not recorded; would follow the same pattern as product status history with a `track_status_history` table.
 
-**Expand DSP rule coverage.** The Spotify rules are a proof of concept. A real implementation would have rules per DSP with proper configuration, and the rule sets would likely be data-driven rather than hardcoded. if rules ever made external calls, such as checking against a rights registry or a content moderation API, parallelizing across DSPs would meaningfully reduce latency.
+**Expand DSP rule coverage.** The Spotify rules are a proof of concept. A real implementation would have rules per DSP with proper configuration, and the rule sets would likely be data-driven rather than hardcoded. If rules ever made external calls, such as checking against a rights registry or a content moderation API, parallelizing across DSPs would meaningfully reduce latency.
 
 **Authentication and authorization** Currently any caller can submit, update, or delete any product. In production, the API would sit behind an identity provider like Okta. Labels would authenticate via OAuth2 and their token would scope them to their own catalog, a label can only read and modify their own products. The `changed_by_id` field on status history is already nullable and waiting for this, once authentication is in place, the authenticated label account ID would populate that field on every resubmission, giving a full audit trail of who changed what and when.
 
 **End-to-end integration tests** A test that submits a product via the REST API and asserts the final validation status in the database, covering the full pipeline including Debezium CDC, validation consumers, and status update routing.
 
-**Expose validation failures at the API** Rule violations are recorded in status history but not yet surfaced on `GET /products/{id}`. Adding a violations field to the product response when status is VALIDATION_FAILED would let labels see what needs fixing without querying the history endpoint separately.
+**Expose validation failures at the API** Rule violations are recorded in status history but not yet surfaced on `GET /products/{id}`. Adding a `violations` field to the product response when status is VALIDATION_FAILED would let labels see what needs fixing without querying the history endpoint separately.
 
 **Expose status history via API** `GET /products/{id}/history` would return the full audit trail of status transitions for a product, including actor type, identity, timestamp, and notes. The `product_status_history` table already captures this data, it just isn't exposed yet.
 
